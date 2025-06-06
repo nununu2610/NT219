@@ -1,6 +1,5 @@
 from flask import Flask, g
 from flask_cors import CORS
-
 from db import init_db, get_db, close_db
 from auth import auth_bp
 from product import product_bp
@@ -9,10 +8,10 @@ from user import user_bp
 
 app = Flask(__name__)
 CORS(app, 
-     origins=["http://localhost:8000"], 
-     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
-     allow_headers=["Content-Type", "Authorization"],
-     supports_credentials=True)
+    origins=["http://localhost:8000"],
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
+    allow_headers=["Content-Type", "Authorization"],
+    supports_credentials=True)
 
 with app.app_context():
     init_db()

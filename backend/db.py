@@ -4,6 +4,11 @@ from flask import g
 DATABASE = 'mydb.sqlite'
 
 def get_db():
+    if 'db' not in g:
+        g.db = sqlite3.connect(DATABASE, check_same_thread=False, timeout=10)
+        g.db.row_factory = sqlite3.Row
+    return g.db
+
     conn = sqlite3.connect('mydb.sqlite', check_same_thread=False, timeout=10)
     conn.row_factory = sqlite3.Row
     return conn
@@ -41,10 +46,7 @@ def get_db():
 #         db.commit()
 #     finally:
 #         db.close()
-    if 'db' not in g:
-        g.db = sqlite3.connect(DATABASE, check_same_thread=False)
-        g.db.row_factory = sqlite3.Row
-    return g.db
+
 
 def close_db():
     db = g.pop('db', None)

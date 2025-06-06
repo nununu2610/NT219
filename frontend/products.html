@@ -4,6 +4,31 @@
   <meta charset="UTF-8" />
   <title>Danh sách sản phẩm</title>
   <link rel="stylesheet" href="css/style.css" />
+
+  <style>
+  #productList li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    border-bottom: 1px solid #ccc;
+  }
+
+  .add-to-cart-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .add-to-cart-btn:hover {
+    background-color: #218838;
+  }
+</style>
+
+
 </head>
 <body>
   <!-- Navbar -->
@@ -16,6 +41,8 @@
       <a href="signup.html">Đăng ký</a>
       <a href="login.html">Đăng nhập</a>
       <a href="add-product.html" id="admin-link" style="display:none;">Thêm sản phẩm</a>
+      <a href="cart.html" id="cart-link" style="display:none;">Giỏ hàng</a>
+
     </div>
   </nav>
 
@@ -38,16 +65,49 @@
           if (!res.ok) throw new Error('Không thể lấy sản phẩm');
           return res.json();
         })
+
         .then((data) => {
-          const list = document.getElementById('productList');
-          list.innerHTML = '';
-          data.forEach((p) => {
-            const li = document.createElement('li');
-            li.textContent = `Tên: ${p.name} - Giá: ${p.price.toLocaleString()} VND`;
-            list.appendChild(li);
-          });
-          document.getElementById('error').textContent = '';
+  const list = document.getElementById('productList');
+  list.innerHTML = '';
+
+  data.forEach((p) => {
+    const li = document.createElement('li');
+    li.innerHTML = `
+      <span>Tên: ${p.name} - Giá: ${p.price.toLocaleString()} VND</span>
+      <button class="add-to-cart-btn" data-id="${p.id}">+ Giỏ hàng</button>
+    `;
+
+    list.appendChild(li);
+  });
+
+  // Gán sự kiện click cho nút "Thêm vào giỏ hàng" **ngoài vòng lặp**
+  document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+    button.addEventListener('click', () => {
+      const productId = parseInt(button.dataset.id);
+
+      fetch('http://localhost:30000/api/cart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ product_id: productId, quantity: 1 })
+      })
+      .then(res => res.json())
+      .then(data => {
+        alert(data.message || 'Đã thêm vào giỏ hàng!');
+      })
+      .catch(err => {
+        console.error(err);
+        alert('Lỗi khi thêm vào giỏ hàng!');
+      });
+    });
+  });
+
+  document.getElementById('error').textContent = '';
         })
+
+
         .catch((err) => {
           document.getElementById('error').textContent = err.message;
         });
@@ -59,6 +119,11 @@
       if (payload.role === 'admin') {
         document.getElementById('admin-link').style.display = 'inline-block';
       }
+
+        if (payload.role === 'user') {
+          document.getElementById('cart-link').style.display = 'inline-block';
+        }
+
     } catch (e) {}
   </script>
 </body>

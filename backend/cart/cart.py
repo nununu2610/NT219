@@ -10,7 +10,15 @@ cart_bp = Blueprint('cart', __name__)
 def get_cart():
     db = get_db()
     user_id = g.user["id"]
-    rows = db.execute("SELECT * FROM carts WHERE user_id=?", (user_id,)).fetchall()
+    rows = db.execute("""
+        SELECT carts.id, carts.product_id, carts.quantity,
+            products.name AS product_name,
+            products.description AS product_description
+        FROM carts
+        JOIN products ON carts.product_id = products.id
+        WHERE carts.user_id = ?
+    """, (user_id,)).fetchall()
+    
     cart_items = []
 
     for row in rows:
