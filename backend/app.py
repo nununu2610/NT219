@@ -1,5 +1,6 @@
 from flask import Flask, g
 from flask_cors import CORS
+
 from db import init_db, get_db, close_db
 from auth import auth_bp
 from product import product_bp
@@ -7,28 +8,23 @@ from cart import cart_bp
 from user import user_bp
 
 app = Flask(__name__)
-
 CORS(app, 
      origins=["http://localhost:8000"], 
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
      allow_headers=["Content-Type", "Authorization"],
      supports_credentials=True)
 
-# Khởi tạo DB trong app context để chắc chắn DB sẵn sàng trước khi có request
 with app.app_context():
     init_db()
 
-# Mở kết nối DB trước mỗi request
 @app.before_request
 def before_request():
     g.db = get_db()
 
-# Đóng kết nối DB sau mỗi request
 @app.teardown_appcontext
 def teardown_db(exception):
     close_db()
 
-# Đăng ký các blueprint với prefix rõ ràng để dễ quản lý API endpoint
 app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(product_bp, url_prefix='/api')
 app.register_blueprint(cart_bp, url_prefix='/api/cart')
