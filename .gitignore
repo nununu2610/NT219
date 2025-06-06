@@ -5,6 +5,7 @@ yarn-debug.log*
 yarn-error.log*
 package-lock.json
 yarn.lock
+backend/mydb.sqlite
 
 # Python
 __pycache__/
