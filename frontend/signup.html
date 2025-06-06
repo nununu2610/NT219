@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Đăng ký</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- Navbar -->
+  <nav>
+    <div class="nav-left">
+      <a href="index.html">Trang chủ</a>
+      <a href="products.html">Sản phẩm</a>
+    </div>
+    <div class="nav-right">
+      <a href="signup.html">Đăng ký</a>
+      <a href="login.html">Đăng nhập</a>
+      <a href="add-product.html" id="admin-link" style="display:none;">Thêm sản phẩm</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h2>Đăng ký tài khoản</h2>
+    <form id="signupForm">
+      <input type="text" id="username" placeholder="Username" required />
+      <input type="password" id="password" placeholder="Password" required />
+      <select id="role" required>
+        <option value="">Chọn vai trò</option>
+        <option value="user">User</option>
+        <option value="admin">Admin</option>
+      </select>
+      <button type="submit">Đăng ký</button>
+    </form>
+
+    <p id="message" class="message"></p>
+
+    <p>
+      Đã có tài khoản? <a href="login.html">Đăng nhập</a>
+    </p>
+  </div>
+
+  <script>
+    document.getElementById('signupForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const role = document.getElementById('role').value;
+
+      const res = await fetch('http://localhost:30000/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, role }),
+      });
+
+      const data = await res.json();
+      const messageEl = document.getElementById('message');
+      if (res.ok) {
+        messageEl.textContent = 'Đăng ký thành công! Chuyển sang trang đăng nhập...';
+        messageEl.className = 'message success';
+        setTimeout(() => {
+          window.location.href = 'login.html';
+        }, 2000);
+      } else {
+        messageEl.textContent = data.message || 'Đăng ký thất bại';
+        messageEl.className = 'message error';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Danh sách sản phẩm</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- Navbar -->
+  <nav>
+    <div class="nav-left">
+      <a href="index.html">Trang chủ</a>
+      <a href="products.html">Sản phẩm</a>
+    </div>
+    <div class="nav-right">
+      <a href="signup.html">Đăng ký</a>
+      <a href="login.html">Đăng nhập</a>
+      <a href="add-product.html" id="admin-link" style="display:none;">Thêm sản phẩm</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h2>Danh sách sản phẩm</h2>
+    <ul id="productList"></ul>
+    <p id="error" class="message error"></p>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    if (!token) {
+      document.getElementById('error').textContent = 'Bạn cần đăng nhập để xem sản phẩm.';
+    } else {
+      fetch('http://localhost:30000/api/products', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error('Không thể lấy sản phẩm');
+          return res.json();
+        })
+        .then((data) => {
+          const list = document.getElementById('productList');
+          list.innerHTML = '';
+          data.forEach((p) => {
+            const li = document.createElement('li');
+            li.textContent = `Tên: ${p.name} — Giá: ${p.price.toLocaleString()} VND`;
+            list.appendChild(li);
+          });
+          document.getElementById('error').textContent = '';
+        })
+        .catch((err) => {
+          document.getElementById('error').textContent = err.message;
+        });
+    }
+
+    // Hiện link admin nếu role là admin
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.role === 'admin') {
+        document.getElementById('admin-link').style.display = 'inline-block';
+      }
+    } catch (e) {}
+  </script>
+</body>
+</html>

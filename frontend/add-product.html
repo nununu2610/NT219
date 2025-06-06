@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Thêm sản phẩm</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- Navbar -->
+  <nav>
+    <div class="nav-left">
+      <a href="index.html">Trang chủ</a>
+      <a href="products.html">Sản phẩm</a>
+    </div>
+    <div class="nav-right">
+      <a href="signup.html">Đăng ký</a>
+      <a href="login.html">Đăng nhập</a>
+      <a href="add-product.html" id="admin-link" style="display:none;">Thêm sản phẩm</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h2>Thêm sản phẩm mới</h2>
+    <form id="addProductForm">
+      <input type="text" id="name" placeholder="Tên sản phẩm" required />
+      <input type="text" id="description" placeholder="Mô tả sản phẩm" />
+      <input type="number" id="price" placeholder="Giá sản phẩm" required min="0" />
+      <button type="submit">Thêm</button>
+    </form>
+
+    <p id="message" class="message"></p>
+  </div>
+
+  <script>
+    // Hiện link admin nếu role là admin
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.role === 'admin') {
+          document.getElementById('admin-link').style.display = 'inline-block';
+        } else {
+          alert('Bạn không có quyền truy cập trang này!');
+          window.location.href = 'products.html';
+        }
+      } catch (e) {
+        alert('Token không hợp lệ, vui lòng đăng nhập lại!');
+        window.location.href = 'login.html';
+      }
+    } else {
+      alert('Bạn cần đăng nhập để truy cập trang này!');
+      window.location.href = 'login.html';
+    }
+
+    document.getElementById('addProductForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value;
+      const description = document.getElementById('description').value;
+      const price = Number(document.getElementById('price').value);
+
+      const res = await fetch('http://localhost:30000/api/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name, description, price }),
+      });
+
+      const data = await res.json();
+      const messageEl = document.getElementById('message');
+      if (res.ok) {
+        messageEl.textContent = 'Thêm sản phẩm thành công!';
+        messageEl.className = 'message success';
+        document.getElementById('addProductForm').reset();
+      } else {
+        messageEl.textContent = data.error || 'Thêm sản phẩm thất bại';
+        messageEl.className = 'message error';
+      }
+    });
+  </script>
+</body>
+</html>
