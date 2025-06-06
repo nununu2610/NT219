@@ -1,0 +1,34 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+env/
+ENV/
+*.pyo
+*.pyd
+*.pyc
+
+# VS Code
+.vscode/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Database files
+backend/mydb.sqlite
+
+# Logs
+logs/
+*.log
+
+# Environment variables
+.env
