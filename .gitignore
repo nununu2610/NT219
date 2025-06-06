@@ -1,0 +1,29 @@
+# Node.js dependencies
+node_modules/
+
+# Build output folder (nếu có)
+dist/
+build/
+
+# Python virtual environment
+venv/
+env/
+__pycache__/
+
+# SQLite database file (bỏ theo dõi file DB)
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE/editor configs
+.vscode/
+.idea/
+
+# Env config files
+.env
