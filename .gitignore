@@ -1,35 +1,29 @@
-# Node.js
+# Node.js dependencies
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-package-lock.json
-yarn.lock
-backend/mydb.sqlite
 
-# Python
-__pycache__/
-*.py[cod]
+# Build output folder (nếu có)
+dist/
+build/
+
+# Python virtual environment
 venv/
 env/
-ENV/
-*.pyo
-*.pyd
-*.pyc
+__pycache__/
 
-# VS Code
-.vscode/
+# SQLite database file (bỏ theo dõi file DB)
+*.sqlite
+*.sqlite3
 
-# OS Files
+# Logs
+*.log
+
+# System files
 .DS_Store
 Thumbs.db
 
-# Database files
-backend/mydb.sqlite
+# IDE/editor configs
+.vscode/
+.idea/
 
-# Logs
-logs/
-*.log
-
-# Environment variables
+# Env config files
 .env

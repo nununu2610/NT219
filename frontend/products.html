@@ -43,7 +43,7 @@
           list.innerHTML = '';
           data.forEach((p) => {
             const li = document.createElement('li');
-            li.textContent = `Tên: ${p.name} — Giá: ${p.price.toLocaleString()} VND`;
+            li.textContent = `Tên: ${p.name} - Giá: ${p.price.toLocaleString()} VND`;
             list.appendChild(li);
           });
           document.getElementById('error').textContent = '';
