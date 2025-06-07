@@ -4,11 +4,15 @@ async function callAPI(endpoint, options = {}) {
   let token = localStorage.getItem('token');
   const refreshToken = localStorage.getItem('refresh_token');
 
-  if (!options.headers) options.headers = {};
-  options.headers['Content-Type'] = 'application/json';
-  if (token) {
-    options.headers['Authorization'] = 'Bearer ' + token;
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {})
   }
+
+  if (token) {
+    headers['Authorization'] = 'Bearer ' + token;
+  }
+  options.headers = headers;
 
   let res = await fetch(API_BASE + endpoint, options);
 
@@ -17,8 +21,7 @@ async function callAPI(endpoint, options = {}) {
     const newAccessToken = await refreshAccessToken(refreshToken);
     if (newAccessToken) {
       localStorage.setItem('token', newAccessToken);
-      token = newAccessToken;
-      options.headers['Authorization'] = 'Bearer ' + newAccessToken;
+      headers.set('Authorization', 'Bearer ' + newAccessToken);
 
       // Gọi lại API với token mới
       res = await fetch(API_BASE + endpoint, options);
@@ -36,29 +39,5 @@ async function callAPI(endpoint, options = {}) {
     throw new Error(errorData.message || 'Lỗi khi gọi API');
   }
 
-  // Trả về dữ liệu JSON
   return res.json();
-}
-
-async function refreshAccessToken(refreshToken) {
-  if (!refreshToken) return null;
-
-  try {
-    // Thường backend nhận refresh token qua header Authorization
-    const res = await fetch(API_BASE + '/auth/refresh', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + refreshToken
-      }
-    });
-
-    if (!res.ok) return null;
-
-    const data = await res.json();
-    return data.access_token;
-  } catch (e) {
-    console.error('Lỗi khi refresh token:', e);
-    return null;
-  }
 }

@@ -55,12 +55,11 @@
         messageEl.className = 'message error';
         return;
       }
+    callAPI('/auth/signup', {
+      method: 'POST',
+      body: JSON.stringify({ username, password, role })
+    })
 
-      callAPI('http://localhost:30000/auth/signup', 'POST', {
-        username,
-        password,
-        role
-      })
       .then(data => {
         messageEl.textContent = 'Đăng ký thành công! Chuyển sang trang đăng nhập...';
         messageEl.className = 'message success';
