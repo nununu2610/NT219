@@ -3,7 +3,6 @@ import bcrypt, jwt, datetime
 from db import get_db
 from middleware import refresh_token_required  # import middleware
 from flask import request
-from middleware import log_action
 
 
 auth_bp = Blueprint('auth', __name__)
@@ -30,14 +29,9 @@ def signup():
     hashed_str = hashed.decode()
 
     try:
-        cursor = db.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", (username, hashed_str, role))
-        user_id = cursor.lastrowid
+        db.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", (username, hashed_str, role))
         db.commit()
-
-        log_action(user_id, "Đăng ký tài khoản")
-
         return jsonify({"message": "Đăng ký thành công"}), 201
-        
     except Exception:
         return jsonify({"message": "Lỗi server"}), 500
     
@@ -61,13 +55,13 @@ def login():
             "id": user["id"],
             "username": user["username"],
             "role": user["role"],
-            "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=15)
+            "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
         }, SECRET_KEY, algorithm="HS256")
 
         refresh_token = jwt.encode({
             "id": user["id"],
-            "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7)
-        }, "refreshsecret", algorithm="HS256")
+            "exp": datetime.datetime.utcnow() + datetime.timedelta(days=2)
+        }, REFRESH_SECRET_KEY, algorithm="HS256")
 
         if isinstance(access_token, bytes):
             access_token = access_token.decode()
@@ -78,15 +72,11 @@ def login():
         db.execute("UPDATE users SET refresh_token = ? WHERE id = ?", (refresh_token, user["id"]))
         db.commit()
 
-        log_action(user["id"], "Đăng nhập")
-
         return jsonify({
             "access_token": access_token,
             "refresh_token": refresh_token
         })
     else:
-        if user:
-            log_action(user["id"], "Đăng nhập thất bại")
         return jsonify({"message": "Sai username hoặc password"}), 401
 
 
@@ -98,7 +88,7 @@ def refresh():
         "id": g.user["id"],
         "username": g.user["username"],
         "role": g.user["role"],
-        "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=15)
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
     }, SECRET_KEY, algorithm="HS256")
 
     if isinstance(access_token, bytes):
@@ -128,11 +118,14 @@ def logout():
         return jsonify({"message": "Token không hợp lệ"}), 401
 
     db = get_db()
+    # Kiểm tra refresh token có trong DB không
+    user = db.execute("SELECT * FROM users WHERE id = ? AND refresh_token = ?", (user_id, token)).fetchone()
+    if not user:
+        return jsonify({"message": "Token không hợp lệ hoặc đã đăng xuất trước đó"}), 401
+
+    # Nếu hợp lệ thì xóa refresh token khỏi DB
     db.execute("UPDATE users SET refresh_token = NULL WHERE id = ?", (user_id,))
     db.commit()
 
-    log_action(user_id, "Đăng xuất")
-
     return jsonify({"message": "Đăng xuất thành công"}), 200
-
 

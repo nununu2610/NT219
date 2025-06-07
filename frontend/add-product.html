@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+  
   <meta charset="UTF-8" />
   <title>Thêm sản phẩm</title>
   <link rel="stylesheet" href="css/style.css" />
+  <script src="js/api.js"></script>
+
 </head>
 <body>
   <!-- Navbar -->
@@ -58,14 +61,11 @@
       const description = document.getElementById('description').value;
       const price = Number(document.getElementById('price').value);
 
-      const res = await fetch('http://localhost:30000/api/products', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name, description, price }),
-      });
+    const res = await callAPI('/api/products', {
+      method: 'POST',
+      body: JSON.stringify({ name, description, price }),
+    });
+
 
       const data = await res.json();
       const messageEl = document.getElementById('message');

@@ -72,11 +72,3 @@ def refresh_token_required(f):
         
         return f(*args, **kwargs)
     return decorated
-
-def log_action(user_id, action):
-    db = get_db()
-    db.execute(
-        "INSERT INTO logs (user_id, action) VALUES (?,?)",
-        (user_id, action)
-    )
-    db.commit()

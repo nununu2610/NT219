@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <title>Danh sách sản phẩm</title>
   <link rel="stylesheet" href="css/style.css" />
+  <script src="js/api.js"></script>
+
 
   <style>
   #productList li {
@@ -93,7 +95,13 @@
     }
 
     logoutLink.addEventListener('click', () => {
-  const refreshToken = localStorage.getItem('refresh_token');
+    const refreshToken = localStorage.getItem('refresh_token');
+      if (!refreshToken) {
+      alert('Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn.');
+      window.location.href = 'login.html';
+      return;
+    }
+
 
   fetch("http://localhost:30000/auth/logout", {
     method: "POST",
@@ -120,22 +128,18 @@
   .catch(err => {
     console.error(err);
     alert(err.message || "Lỗi kết nối máy chủ");
+    localStorage.removeItem("token");
+    localStorage.removeItem("refresh_token");
+    window.location.href = "login.html";
   });
 });
 
 
-    function fetchProducts(token) {
-      fetch('http://localhost:30000/api/products', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        if (!res.ok) throw new Error('Không thể lấy sản phẩm');
-        return res.json();
-      })
-      .then((data) => {
-        const list = document.getElementById('productList');
-        list.innerHTML = '';
+function fetchProducts() {
+  callAPI('/api/products', { method: 'GET' })
+    .then((data) => {
+      const list = document.getElementById('productList');
+      list.innerHTML = '';
 
         data.forEach((p) => {
           const li = document.createElement('li');

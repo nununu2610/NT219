@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>Đăng nhập</title>
   <link rel="stylesheet" href="css/style.css" />
+  <script src="js/api.js"></script>
 </head>
 <body>
   <!-- Navbar -->
@@ -31,41 +32,39 @@
   </div>
 
   <script>
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  console.log("Submit form login");
-  const username = document.getElementById('username').value;
-  const password = document.getElementById('password').value;
-
-  try {
-    const res = await fetch('http://localhost:30000/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
-
-    const data = await res.json();
-    console.log("Response from login API:", data);
+    const form = document.getElementById('loginForm');
     const messageEl = document.getElementById('message');
-    if (res.ok) {
-      // Ở server bạn trả về access_token, refresh_token
-      console.log("Access token:", data.access_token);
-      localStorage.setItem('token', data.access_token);
-      localStorage.setItem('refresh_token', data.refresh_token);
-      messageEl.textContent = 'Đăng nhập thành công!';
-      messageEl.className = 'message success';
-      setTimeout(() => {
-        window.location.href = 'products.html';
-      }, 1000);
-    } else {
-      messageEl.textContent = data.message || 'Đăng nhập thất bại';
-      messageEl.className = 'message error';
-    }
-  } catch (error) {
-    console.error("Lỗi khi gọi API login:", error);
-  }
-});
 
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = form.username.value;
+      const password = form.password.value;
+
+      try {
+        const res = await fetch('http://localhost:30000/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          localStorage.setItem('token', data.access_token);
+          localStorage.setItem('refresh_token', data.refresh_token);
+          messageEl.textContent = 'Đăng nhập thành công!';
+          messageEl.className = 'message success';
+          setTimeout(() => window.location.href = 'products.html', 1000);
+        } else {
+          messageEl.textContent = data.message || 'Đăng nhập thất bại';
+          messageEl.className = 'message error';
+        }
+      } catch (err) {
+        console.error('Lỗi khi gọi API login:', err);
+        messageEl.textContent = 'Lỗi kết nối đến máy chủ';
+        messageEl.className = 'message error';
+      }
+    });
   </script>
 </body>
 </html>

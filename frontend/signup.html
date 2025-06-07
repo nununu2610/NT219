@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>Đăng ký</title>
   <link rel="stylesheet" href="css/style.css" />
+  <script src="js/api.js"></script>
 </head>
 <body>
   <!-- Navbar -->
@@ -55,30 +56,22 @@
         return;
       }
 
-      try {
-        const res = await fetch('http://localhost:30000/auth/signup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password, role }),
-        });
-
-        const data = await res.json();
-
-        if (res.ok) {
-          messageEl.textContent = 'Đăng ký thành công! Chuyển sang trang đăng nhập...';
-          messageEl.className = 'message success';
-          setTimeout(() => {
-            window.location.href = 'login.html';
-          }, 2000);
-        } else {
-          messageEl.textContent = data.message || 'Đăng ký thất bại';
-          messageEl.className = 'message error';
-        }
-      } catch (error) {
-        messageEl.textContent = 'Lỗi kết nối tới server';
+      callAPI('http://localhost:30000/auth/signup', 'POST', {
+        username,
+        password,
+        role
+      })
+      .then(data => {
+        messageEl.textContent = 'Đăng ký thành công! Chuyển sang trang đăng nhập...';
+        messageEl.className = 'message success';
+        setTimeout(() => {
+          window.location.href = 'login.html';
+        }, 2000);
+      })
+      .catch(error => {
+        messageEl.textContent = error.message || 'Đăng ký thất bại';
         messageEl.className = 'message error';
-        console.error(error);
-      }
+      });
     });
   </script>
 </body>
