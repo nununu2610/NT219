@@ -32,30 +32,40 @@
 
   <script>
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const username = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
+  e.preventDefault();
+  console.log("Submit form login");
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
 
-      const res = await fetch('http://localhost:30000/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await res.json();
-      const messageEl = document.getElementById('message');
-      if (res.ok) {
-        localStorage.setItem('token', data.token);
-        messageEl.textContent = 'Đăng nhập thành công!';
-        messageEl.className = 'message success';
-        setTimeout(() => {
-          window.location.href = 'products.html';
-        }, 1000);
-      } else {
-        messageEl.textContent = data.message || 'Đăng nhập thất bại';
-        messageEl.className = 'message error';
-      }
+  try {
+    const res = await fetch('http://localhost:30000/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
     });
+
+    const data = await res.json();
+    console.log("Response from login API:", data);
+    const messageEl = document.getElementById('message');
+    if (res.ok) {
+      // Ở server bạn trả về access_token, refresh_token
+      console.log("Access token:", data.access_token);
+      localStorage.setItem('token', data.access_token);
+      localStorage.setItem('refresh_token', data.refresh_token);
+      messageEl.textContent = 'Đăng nhập thành công!';
+      messageEl.className = 'message success';
+      setTimeout(() => {
+        window.location.href = 'products.html';
+      }, 1000);
+    } else {
+      messageEl.textContent = data.message || 'Đăng nhập thất bại';
+      messageEl.className = 'message error';
+    }
+  } catch (error) {
+    console.error("Lỗi khi gọi API login:", error);
+  }
+});
+
   </script>
 </body>
 </html>

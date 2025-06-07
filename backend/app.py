@@ -11,7 +11,8 @@ CORS(app,
     origins=["http://localhost:8000"],
     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
     allow_headers=["Content-Type", "Authorization"],
-    supports_credentials=True)
+    supports_credentials=True,
+    automatic_options=True)
 
 with app.app_context():
     init_db()

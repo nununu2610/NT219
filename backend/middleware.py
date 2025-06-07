@@ -2,31 +2,22 @@ from functools import wraps
 from flask import request, jsonify, g
 import jwt
 from db import get_db
-import os
 
-SECRET_KEY = os.environ.get("SECRET_KEY", "supersecret")
-
-def require_role(role):
-    def decorator(f):
-        @wraps(f)
-        def wrapper(*args, **kwargs):
-            if g.user["role"] != role:
-                return jsonify({"message": "Bạn không có quyền truy cập"}), 403
-            return f(*args, **kwargs)
-        return wrapper
-    return decorator
-
+SECRET_KEY = "supersecret"
+REFRESH_SECRET_KEY = "refreshsecret"
 
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-
         if request.method == 'OPTIONS':
             return '', 200
-
+        
         token = None
-        if 'Authorization' in request.headers:
-            token = request.headers['Authorization'].split()[1]  # Bearer <token>
+        auth_header = request.headers.get('Authorization', None)
+        if auth_header:
+            parts = auth_header.split()
+            if len(parts) == 2 and parts[0].lower() == 'bearer':
+                token = parts[1]
 
         if not token:
             return jsonify({'message': 'Token không được cung cấp'}), 401
@@ -37,10 +28,47 @@ def token_required(f):
             user = db.execute("SELECT * FROM users WHERE id = ?", (data['id'],)).fetchone()
             if not user:
                 return jsonify({'message': 'User không tồn tại'}), 401
-            # ✅ Thêm dòng này để g.user hoạt động
             g.user = {"id": user["id"], "username": user["username"], "role": user["role"]}
-        except Exception as e:
+        except jwt.ExpiredSignatureError:
+            return jsonify({'message': 'Token hết hạn'}), 401
+        except jwt.InvalidTokenError:
             return jsonify({'message': 'Token không hợp lệ'}), 401
 
+        return f(*args, **kwargs)
+    return decorated
+
+def require_role(role):
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            if not hasattr(g, 'user') or g.user.get("role") != role:
+                return jsonify({"message": "Bạn không có quyền truy cập"}), 403
+            return f(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
+def refresh_token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        data = request.get_json()
+        refresh_token = data.get("refresh_token")
+        if not refresh_token:
+            return jsonify({'message': 'Refresh token không được cung cấp'}), 401
+        
+        try:
+            decoded = jwt.decode(refresh_token, REFRESH_SECRET_KEY, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            return jsonify({'message': 'Refresh token hết hạn'}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({'message': 'Refresh token không hợp lệ'}), 401
+
+        db = get_db()
+        user = db.execute("SELECT * FROM users WHERE id = ?", (decoded['id'],)).fetchone()
+        if not user or user['refresh_token'] != refresh_token:
+            return jsonify({'message': 'Refresh token không hợp lệ'}), 401
+        
+        g.user = {"id": user["id"], "username": user["username"], "role": user["role"]}
+        
         return f(*args, **kwargs)
     return decorated

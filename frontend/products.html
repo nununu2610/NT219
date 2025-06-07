@@ -28,7 +28,6 @@
   }
 </style>
 
-
 </head>
 <body>
   <!-- Navbar -->
@@ -40,9 +39,9 @@
     <div class="nav-right">
       <a href="signup.html">Đăng ký</a>
       <a href="login.html">Đăng nhập</a>
+      <a href="#" id="logout-link" style="display:none;">Đăng xuất</a>
       <a href="add-product.html" id="admin-link" style="display:none;">Thêm sản phẩm</a>
       <a href="cart.html" id="cart-link" style="display:none;">Giỏ hàng</a>
-
     </div>
   </nav>
 
@@ -54,77 +53,128 @@
 
   <script>
     const token = localStorage.getItem('token');
-    if (!token) {
-      document.getElementById('error').textContent = 'Bạn cần đăng nhập để xem sản phẩm.';
+
+    const signupLink = document.querySelector('a[href="signup.html"]');
+    const loginLink = document.querySelector('a[href="login.html"]');
+    const logoutLink = document.getElementById('logout-link');
+    const adminLink = document.getElementById('admin-link');
+    const cartLink = document.getElementById('cart-link');
+
+    if (token) {
+      // Đã đăng nhập
+      signupLink.style.display = 'none';
+      loginLink.style.display = 'none';
+      logoutLink.style.display = 'inline-block';
+
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.role === 'admin') {
+          adminLink.style.display = 'inline-block';
+          cartLink.style.display = 'none';
+        } else if (payload.role === 'user') {
+          cartLink.style.display = 'inline-block';
+          adminLink.style.display = 'none';
+        }
+      } catch(e) {
+        console.error(e);
+      }
+
+      fetchProducts(token);
+
     } else {
+      // Chưa đăng nhập
+      signupLink.style.display = 'inline-block';
+      loginLink.style.display = 'inline-block';
+      logoutLink.style.display = 'none';
+      adminLink.style.display = 'none';
+      cartLink.style.display = 'none';
+
+      document.getElementById('error').textContent = 'Bạn cần đăng nhập để xem sản phẩm.';
+    }
+
+    logoutLink.addEventListener('click', () => {
+  const refreshToken = localStorage.getItem('refresh_token');
+
+  fetch("http://localhost:30000/auth/logout", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + refreshToken
+    }
+  })
+  .then(res => {
+    if (!res.ok) {
+      return res.json().then(err => {
+        throw new Error(err.message || 'Lỗi khi đăng xuất');
+      });
+    }
+    return res.json();
+  })
+  .then(data => {
+    // Chỉ xóa token sau khi đã được xác thực
+    localStorage.removeItem("token");
+    localStorage.removeItem("refresh_token");
+    alert(data.message || "Đăng xuất thành công");
+    window.location.href = "login.html";
+  })
+  .catch(err => {
+    console.error(err);
+    alert(err.message || "Lỗi kết nối máy chủ");
+  });
+});
+
+
+    function fetchProducts(token) {
       fetch('http://localhost:30000/api/products', {
         method: 'GET',
         headers: { Authorization: `Bearer ${token}` },
       })
-        .then((res) => {
-          if (!res.ok) throw new Error('Không thể lấy sản phẩm');
-          return res.json();
-        })
-
-        .then((data) => {
-  const list = document.getElementById('productList');
-  list.innerHTML = '';
-
-  data.forEach((p) => {
-    const li = document.createElement('li');
-    li.innerHTML = `
-      <span>Tên: ${p.name} - Giá: ${p.price.toLocaleString()} VND</span>
-      <button class="add-to-cart-btn" data-id="${p.id}">+ Giỏ hàng</button>
-    `;
-
-    list.appendChild(li);
-  });
-
-  // Gán sự kiện click cho nút "Thêm vào giỏ hàng" **ngoài vòng lặp**
-  document.querySelectorAll('.add-to-cart-btn').forEach(button => {
-    button.addEventListener('click', () => {
-      const productId = parseInt(button.dataset.id);
-
-      fetch('http://localhost:30000/api/cart', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ product_id: productId, quantity: 1 })
+      .then((res) => {
+        if (!res.ok) throw new Error('Không thể lấy sản phẩm');
+        return res.json();
       })
-      .then(res => res.json())
-      .then(data => {
-        alert(data.message || 'Đã thêm vào giỏ hàng!');
-      })
-      .catch(err => {
-        console.error(err);
-        alert('Lỗi khi thêm vào giỏ hàng!');
-      });
-    });
-  });
+      .then((data) => {
+        const list = document.getElementById('productList');
+        list.innerHTML = '';
 
-  document.getElementById('error').textContent = '';
-        })
-
-
-        .catch((err) => {
-          document.getElementById('error').textContent = err.message;
+        data.forEach((p) => {
+          const li = document.createElement('li');
+          li.innerHTML = `
+            <span>Tên: ${p.name} - Giá: ${p.price.toLocaleString()} VND</span>
+            <button class="add-to-cart-btn" data-id="${p.id}">+ Giỏ hàng</button>
+          `;
+          list.appendChild(li);
         });
+
+        document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+          button.addEventListener('click', () => {
+            const productId = parseInt(button.dataset.id);
+
+            fetch('http://localhost:30000/api/cart', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+              },
+              body: JSON.stringify({ product_id: productId, quantity: 1 })
+            })
+            .then(res => res.json())
+            .then(data => {
+              alert(data.message || 'Đã thêm vào giỏ hàng!');
+            })
+            .catch(err => {
+              console.error(err);
+              alert('Lỗi khi thêm vào giỏ hàng!');
+            });
+          });
+        });
+
+        document.getElementById('error').textContent = '';
+      })
+      .catch((err) => {
+        document.getElementById('error').textContent = err.message;
+      });
     }
-
-    // Hiện link admin nếu role là admin
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      if (payload.role === 'admin') {
-        document.getElementById('admin-link').style.display = 'inline-block';
-      }
-
-        if (payload.role === 'user') {
-          document.getElementById('cart-link').style.display = 'inline-block';
-        }
-
-    } catch (e) {}
   </script>
 </body>
 </html>
