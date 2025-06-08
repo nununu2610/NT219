@@ -143,10 +143,15 @@ function fetchProducts() {
 
         data.forEach((p) => {
           const li = document.createElement('li');
-          li.innerHTML = `
-            <span>Tên: ${p.name} - Giá: ${p.price.toLocaleString()} VND</span>
-            <button class="add-to-cart-btn" data-id="${p.id}">+ Giỏ hàng</button>
-          `;
+              li.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                  <strong>${p.name}</strong>
+                  <span>${p.price.toLocaleString()} VND</span>
+                  <button class="add-to-cart-btn" data-id="${p.id}">+ Giỏ hàng</button>
+                </div>
+                <div style="font-style: italic; color: gray; margin-top: 4px;">${p.description || 'Không có mô tả'}</div>
+              `;
+
           list.appendChild(li);
         });
 

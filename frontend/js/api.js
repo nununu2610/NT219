@@ -21,7 +21,7 @@ async function callAPI(endpoint, options = {}) {
     const newAccessToken = await refreshAccessToken(refreshToken);
     if (newAccessToken) {
       localStorage.setItem('token', newAccessToken);
-      headers.set('Authorization', 'Bearer ' + newAccessToken);
+      headers['Authorization'] = 'Bearer ' + newAccessToken;
 
       // Gọi lại API với token mới
       res = await fetch(API_BASE + endpoint, options);
@@ -35,9 +35,22 @@ async function callAPI(endpoint, options = {}) {
   }
 
   if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || 'Lỗi khi gọi API');
+    const contentType = res.headers.get("Content-Type") || "";
+    if (contentType.includes("application/json")) {
+      const errorData = await res.json();
+      throw new Error(errorData.message || "Lỗi khi gọi API");
+    } else {
+      const text = await res.text();
+      throw new Error(text || "Lỗi không xác định");
+    }
   }
 
-  return res.json();
+  const contentType = res.headers.get("Content-Type") || "";
+  if (contentType.includes("application/json")) {
+    return res.json();
+  } else {
+    return res.text(); // hoặc trả về { message: text } nếu bạn cần đồng nhất
+  }
+
+
 }

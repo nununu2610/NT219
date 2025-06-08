@@ -5,7 +5,6 @@
   <meta charset="UTF-8" />
   <title>Thêm sản phẩm</title>
   <link rel="stylesheet" href="css/style.css" />
-  <script src="js/api.js"></script>
 
 </head>
 <body>
@@ -34,6 +33,8 @@
     <p id="message" class="message"></p>
   </div>
 
+  <script src="js/api.js"></script>
+
   <script>
     // Hiện link admin nếu role là admin
     const token = localStorage.getItem('token');
@@ -61,22 +62,22 @@
       const description = document.getElementById('description').value;
       const price = Number(document.getElementById('price').value);
 
-    const res = await callAPI('/api/products', {
-      method: 'POST',
-      body: JSON.stringify({ name, description, price }),
-    });
 
-
-      const data = await res.json();
       const messageEl = document.getElementById('message');
-      if (res.ok) {
+      try {
+        const data = await callAPI('/api/products', {
+          method: 'POST',
+          body: JSON.stringify({ name, description, price }),
+        });
+
         messageEl.textContent = 'Thêm sản phẩm thành công!';
         messageEl.className = 'message success';
         document.getElementById('addProductForm').reset();
-      } else {
-        messageEl.textContent = data.error || 'Thêm sản phẩm thất bại';
+      } catch (err) {
+        messageEl.textContent = err.message || 'Thêm sản phẩm thất bại';
         messageEl.className = 'message error';
       }
+
     });
   </script>
 </body>
