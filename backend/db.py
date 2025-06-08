@@ -1,5 +1,5 @@
 import sqlite3
-from flask import g
+from flask import g, request
 from datetime import datetime
 
 DATABASE = 'mydb.sqlite'
@@ -49,6 +49,8 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
         action TEXT,
+        ip_address TEXT,
+        user_agent TEXT,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id)
     )''')
@@ -67,9 +69,13 @@ def init_db():
 
 def log_action(user_id, action):
     db = get_db()
+    ip = request.remote_addr or 'unknown'
+    user_agent = request.headers.get('User-Agent', 'unknown')
+
     db.execute(
-        "INSERT INTO logs (user_id, action, timestamp) VALUES (?, ?, ?)",
-        (user_id, action, datetime.utcnow())
+        '''INSERT INTO logs (user_id, action, ip_address, user_agent)
+           VALUES (?, ?, ?, ?)''',
+        (user_id, action, ip, user_agent)
     )
     db.commit()
 
