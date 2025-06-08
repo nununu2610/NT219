@@ -9,10 +9,10 @@
 
   <style>
   #productList li {
-    display: flex;
+    display: 10px;
     justify-content: space-between;
     align-items: center;
-    padding: 8px;
+    padding: 5px;
     border-bottom: 1px solid #ccc;
   }
 
@@ -28,6 +28,56 @@
   .add-to-cart-btn:hover {
     background-color: #218838;
   }
+
+#productList li {
+  padding: 10px;
+  border-bottom: 1px solid #ccc;
+  list-style: none;
+  display: block;
+}
+
+.product-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 0;
+  padding-bottom: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.product-name {
+  flex: 1;
+  font-weight: bold;
+  text-align: left;
+}
+
+.product-price {
+  flex: 1;
+  text-align: center;
+}
+
+.product-action {
+  flex: 1;
+  text-align: right;
+}
+
+.product-description {
+  margin-top: 1px;
+  font-style: italic;
+  color: gray;
+  padding-left: 1px;
+}
+
+.quantity-input {
+  width: 50px;
+  padding: 4px;
+  font-size: 14px;
+}
+
+
+
 </style>
 
 </head>
@@ -142,40 +192,50 @@ function fetchProducts() {
 
         data.forEach((p) => {
           const li = document.createElement('li');
-              li.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                  <strong>${p.name}</strong>
-                  <span>${p.price.toLocaleString()} VND</span>
-                  <button class="add-to-cart-btn" data-id="${p.id}">+ Giỏ hàng</button>
-                </div>
-                <div style="font-style: italic; color: gray; margin-top: 4px;">${p.description || 'Không có mô tả'}</div>
-              `;
 
-          list.appendChild(li);
-        });
+          
+        li.innerHTML = `
+          <div class="product-row">
+            <div class="product-name">${p.name}</div>
+            <div class="product-price">${p.price.toLocaleString()} VND</div>
+          <div class="product-action">
+            <input type="number" class="quantity-input" min="1" value="1" style="width: 60px; margin-right: 6px;" />
+            <button class="add-to-cart-btn" data-id="${p.id}">+ Giỏ hàng</button>
+          </div>
 
-        document.querySelectorAll('.add-to-cart-btn').forEach(button => {
-          button.addEventListener('click', () => {
-            const productId = parseInt(button.dataset.id);
+          </div>
+          <div class="product-description">${p.description || 'Không có mô tả'}</div>
+        `;
+            list.appendChild(li);
+          });
 
-            fetch('http://localhost:30000/api/cart', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
-              },
-              body: JSON.stringify({ product_id: productId, quantity: 1 })
-            })
-            .then(res => res.json())
-            .then(data => {
-              alert(data.message || 'Đã thêm vào giỏ hàng!');
-            })
-            .catch(err => {
-              console.error(err);
-              alert('Lỗi khi thêm vào giỏ hàng!');
-            });
+
+      document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+        button.addEventListener('click', () => {
+          const productId = parseInt(button.dataset.id);
+
+          const quantityInput = button.previousElementSibling;
+          const quantity = parseInt(quantityInput.value) || 1;
+
+          fetch('http://localhost:30000/api/cart', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({ product_id: productId, quantity: quantity })
+          })
+          .then(res => res.json())
+          .then(data => {
+            alert(data.message || 'Đã thêm vào giỏ hàng!');
+          })
+          .catch(err => {
+            console.error(err);
+            alert('Lỗi khi thêm vào giỏ hàng!');
           });
         });
+      });
+
 
         document.getElementById('error').textContent = '';
       })
