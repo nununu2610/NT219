@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, g
 import bcrypt, jwt, datetime
-from db import get_db
+from db import get_db, log_action
 from middleware import refresh_token_required  # import middleware
 from flask import request
 
@@ -29,9 +29,12 @@ def signup():
     hashed_str = hashed.decode()
 
     try:
-        db.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", (username, hashed_str, role))
-        db.commit()
-        return jsonify({"message": "Đăng ký thành công"}), 201
+       cursor = db.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", (username, hashed_str, role))
+       db.commit()
+       user_id = cursor.lastrowid  # Lấy ID của user vừa thêm
+       log_action(user_id, "Đăng ký")
+       return jsonify({"message": "Đăng ký thành công"}), 201
+        
     except Exception:
         return jsonify({"message": "Lỗi server"}), 500
     
@@ -71,7 +74,7 @@ def login():
         # Lưu refresh_token vào DB
         db.execute("UPDATE users SET refresh_token = ? WHERE id = ?", (refresh_token, user["id"]))
         db.commit()
-
+        log_action(user["id"], "Đăng nhập")
         return jsonify({
             "access_token": access_token,
             "refresh_token": refresh_token
@@ -126,6 +129,6 @@ def logout():
     # Nếu hợp lệ thì xóa refresh token khỏi DB
     db.execute("UPDATE users SET refresh_token = NULL WHERE id = ?", (user_id,))
     db.commit()
-
+    log_action(user["id"], "Đăng xuất")
     return jsonify({"message": "Đăng xuất thành công"}), 200
 

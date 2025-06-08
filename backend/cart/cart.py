@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, g
 from middleware import token_required
-from db import get_db
+from db import get_db, log_action
 from utils import encrypt, decrypt
 
 cart_bp = Blueprint('cart', __name__)
@@ -57,6 +57,7 @@ def add_to_cart():
     else:
         db.execute("INSERT INTO carts (user_id, product_id, quantity) VALUES (?, ?, ?)", (user_id, product_id, quantity))
     db.commit()
+    log_action(user_id, f"Thêm sản phẩm {product_id} vào giỏ hàng")
     return jsonify({"message": "Thêm vào giỏ hàng thành công"})
 
 @cart_bp.route('/<int:id>', methods=['DELETE'])
@@ -71,4 +72,5 @@ def remove_from_cart(id):
 
     db.execute("DELETE FROM carts WHERE id=?", (id,))
     db.commit()
+    log_action(user_id, "Xoá sản phâm")
     return jsonify({"message": "Xóa khỏi giỏ hàng thành công"})
