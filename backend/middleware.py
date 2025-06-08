@@ -64,11 +64,23 @@ def refresh_token_required(f):
             return jsonify({'message': 'Refresh token không hợp lệ'}), 401
 
         db = get_db()
+
+        # Kiểm tra token có tồn tại, chưa bị thu hồi và chưa hết hạn trong bảng refresh_tokens
+        result = db.execute(
+            "SELECT * FROM refresh_tokens WHERE token = ? AND revoked = 0 AND expires_at > datetime('now')",
+            (refresh_token,)
+        ).fetchone()
+
+        if not result:
+            return jsonify({'message': 'Refresh token không hợp lệ hoặc đã bị thu hồi'}), 401
+
+        # Truy vấn user tương ứng
         user = db.execute("SELECT * FROM users WHERE id = ?", (decoded['id'],)).fetchone()
-        if not user or user['refresh_token'] != refresh_token:
-            return jsonify({'message': 'Refresh token không hợp lệ'}), 401
+        if not user:
+            return jsonify({'message': 'User không tồn tại'}), 401
         
         g.user = {"id": user["id"], "username": user["username"], "role": user["role"]}
         
         return f(*args, **kwargs)
     return decorated
+

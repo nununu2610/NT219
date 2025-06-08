@@ -17,19 +17,34 @@ def close_db():
 
 def init_db():
     db = get_db()
+
+    # Bảng users (KHÔNG chứa refresh_token nữa)
     db.execute('''CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
         password TEXT,
-        role TEXT,
-        refresh_token TEXT
+        role TEXT
     )''')
+
+    # Bảng refresh_tokens (quản lý token độc lập)
+    db.execute('''CREATE TABLE IF NOT EXISTS refresh_tokens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        token TEXT NOT NULL UNIQUE,
+        expires_at DATETIME NOT NULL,
+        revoked BOOLEAN NOT NULL DEFAULT 0,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    )''')
+
+    # Bảng products
     db.execute('''CREATE TABLE IF NOT EXISTS products (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         description TEXT,
         price REAL
     )''')
+
+    # Bảng logs
     db.execute('''CREATE TABLE IF NOT EXISTS logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
@@ -37,6 +52,8 @@ def init_db():
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id)
     )''')
+
+    # Bảng carts
     db.execute('''CREATE TABLE IF NOT EXISTS carts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
@@ -45,6 +62,7 @@ def init_db():
         FOREIGN KEY (user_id) REFERENCES users(id),
         FOREIGN KEY (product_id) REFERENCES products(id)
     )''')
+
     db.commit()
 
 def log_action(user_id, action):
@@ -54,3 +72,4 @@ def log_action(user_id, action):
         (user_id, action, datetime.utcnow())
     )
     db.commit()
+

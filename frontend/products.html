@@ -95,20 +95,19 @@
     }
 
     logoutLink.addEventListener('click', () => {
-    const refreshToken = localStorage.getItem('refresh_token');
-      if (!refreshToken) {
-      alert('Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn.');
-      window.location.href = 'login.html';
-      return;
-    }
-
+  const refreshToken = localStorage.getItem('refresh_token');
+  if (!refreshToken) {
+    alert('Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn.');
+    window.location.href = 'login.html';
+    return;
+  }
 
   fetch("http://localhost:30000/auth/logout", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer " + refreshToken
-    }
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ refresh_token: refreshToken })  // Bổ sung body JSON
   })
   .then(res => {
     if (!res.ok) {
@@ -119,7 +118,6 @@
     return res.json();
   })
   .then(data => {
-    // Chỉ xóa token sau khi đã được xác thực
     localStorage.removeItem("token");
     localStorage.removeItem("refresh_token");
     alert(data.message || "Đăng xuất thành công");
@@ -133,6 +131,7 @@
     window.location.href = "login.html";
   });
 });
+
 
 
 function fetchProducts() {

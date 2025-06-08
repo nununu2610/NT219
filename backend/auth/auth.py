@@ -1,13 +1,12 @@
 from flask import Blueprint, request, jsonify, g
 import bcrypt, jwt, datetime
 from db import get_db, log_action
-from middleware import refresh_token_required  # import middleware
-from flask import request
-
+from middleware import refresh_token_required
+from refresh_token_utils import generate_refresh_token, save_refresh_token, revoke_refresh_token
 
 auth_bp = Blueprint('auth', __name__)
 SECRET_KEY = "supersecret"
-REFRESH_SECRET_KEY ="refreshsecret"
+REFRESH_SECRET_KEY = "refreshsecret"
 
 @auth_bp.route('/signup', methods=['POST', 'OPTIONS'])
 def signup():
@@ -25,19 +24,16 @@ def signup():
     if existing_user:
         return jsonify({"message": "Username đã tồn tại"}), 400
 
-    hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
-    hashed_str = hashed.decode()
+    hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
     try:
-       cursor = db.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", (username, hashed_str, role))
-       db.commit()
-       user_id = cursor.lastrowid  # Lấy ID của user vừa thêm
-       log_action(user_id, "Đăng ký")
-       return jsonify({"message": "Đăng ký thành công"}), 201
-        
-    except Exception:
-        return jsonify({"message": "Lỗi server"}), 500
-    
+        cursor = db.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", (username, hashed, role))
+        db.commit()
+        user_id = cursor.lastrowid
+        log_action(user_id, "Đăng ký")
+        return jsonify({"message": "Đăng ký thành công"}), 201
+    except Exception as e:
+        return jsonify({"message": f"Lỗi server: {str(e)}"}), 500
 
 @auth_bp.route('/login', methods=['POST', 'OPTIONS'])
 def login():
@@ -60,75 +56,75 @@ def login():
             "role": user["role"],
             "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
         }, SECRET_KEY, algorithm="HS256")
+        access_token = access_token.decode() if isinstance(access_token, bytes) else access_token
 
-        refresh_token = jwt.encode({
-            "id": user["id"],
-            "exp": datetime.datetime.utcnow() + datetime.timedelta(days=2)
-        }, REFRESH_SECRET_KEY, algorithm="HS256")
+        refresh_token = generate_refresh_token(user["id"])
+        save_refresh_token(db, user["id"], refresh_token)
 
-        if isinstance(access_token, bytes):
-            access_token = access_token.decode()
-        if isinstance(refresh_token, bytes):
-            refresh_token = refresh_token.decode()
-
-        # Lưu refresh_token vào DB
-        db.execute("UPDATE users SET refresh_token = ? WHERE id = ?", (refresh_token, user["id"]))
-        db.commit()
         log_action(user["id"], "Đăng nhập")
         return jsonify({
             "access_token": access_token,
             "refresh_token": refresh_token
-        })
+        }), 200
     else:
         return jsonify({"message": "Sai username hoặc password"}), 401
-
 
 @auth_bp.route('/auth/refresh', methods=['POST'])
 @refresh_token_required
 def refresh():
-    # g.user đã được middleware set sẵn
+    db = get_db()
+
+    old_token = request.get_json().get("refresh_token")
+    revoke_refresh_token(db, old_token)
+
+    new_refresh_token = generate_refresh_token(g.user["id"])
+    save_refresh_token(db, g.user["id"], new_refresh_token)
+
     access_token = jwt.encode({
         "id": g.user["id"],
         "username": g.user["username"],
         "role": g.user["role"],
         "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
     }, SECRET_KEY, algorithm="HS256")
+    access_token = access_token.decode() if isinstance(access_token, bytes) else access_token
 
-    if isinstance(access_token, bytes):
-        access_token = access_token.decode()
-
-    return jsonify({"access_token": access_token})
+    return jsonify({
+        "access_token": access_token,
+        "refresh_token": new_refresh_token
+    }), 200
 
 @auth_bp.route('/logout', methods=['POST', 'OPTIONS'])
 def logout():
     if request.method == 'OPTIONS':
         return '', 200
 
-    auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return jsonify({"message": "Thiếu Authorization header"}), 401
+    data = request.get_json()
+    print("Received logout data:", data)  # DEBUG dòng này
 
-    token = auth_header.split(" ")[1]
+    if not data:
+        return jsonify({"message": "Thiếu dữ liệu đầu vào"}), 400
+
+    refresh_token = data.get("refresh_token")
+
+    if not refresh_token:
+        return jsonify({"message": "Thiếu refresh token"}), 400
+
+    refresh_token = data["refresh_token"]
 
     try:
-        payload = jwt.decode(token, REFRESH_SECRET_KEY, algorithms=["HS256"])
+        payload = jwt.decode(refresh_token, REFRESH_SECRET_KEY, algorithms=["HS256"])
         user_id = payload.get("id")
-        if not user_id:
-            return jsonify({"message": "Token không hợp lệ"}), 401
     except jwt.ExpiredSignatureError:
-        return jsonify({"message": "Token đã hết hạn"}), 401
+        return jsonify({"message": "Refresh token hết hạn"}), 401
     except jwt.InvalidTokenError:
-        return jsonify({"message": "Token không hợp lệ"}), 401
+        return jsonify({"message": "Refresh token không hợp lệ"}), 401
 
     db = get_db()
-    # Kiểm tra refresh token có trong DB không
-    user = db.execute("SELECT * FROM users WHERE id = ? AND refresh_token = ?", (user_id, token)).fetchone()
-    if not user:
-        return jsonify({"message": "Token không hợp lệ hoặc đã đăng xuất trước đó"}), 401
+    revoke_refresh_token(db, refresh_token)
 
-    # Nếu hợp lệ thì xóa refresh token khỏi DB
-    db.execute("UPDATE users SET refresh_token = NULL WHERE id = ?", (user_id,))
-    db.commit()
-    log_action(user["id"], "Đăng xuất")
+    user = db.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    if user:
+        log_action(user["id"], "Đăng xuất")
+
     return jsonify({"message": "Đăng xuất thành công"}), 200
 

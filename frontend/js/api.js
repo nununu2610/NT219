@@ -1,5 +1,28 @@
 const API_BASE = 'http://localhost:30000';
 
+async function refreshAccessToken(refreshToken) {
+  try {
+    const res = await fetch(API_BASE + "/auth/refresh", {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + refreshToken,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      localStorage.setItem('refresh_token', data.refresh_token); // Cập nhật refresh token mới
+      return data.access_token;
+    } else {
+      return null;
+    }
+  } catch (err) {
+    console.error("Lỗi khi gọi refresh token:", err);
+    return null;
+  }
+}
+
 async function callAPI(endpoint, options = {}) {
   let token = localStorage.getItem('token');
   const refreshToken = localStorage.getItem('refresh_token');
@@ -7,7 +30,7 @@ async function callAPI(endpoint, options = {}) {
   const headers = {
     'Content-Type': 'application/json',
     ...(options.headers || {})
-  }
+  };
 
   if (token) {
     headers['Authorization'] = 'Bearer ' + token;
@@ -16,7 +39,7 @@ async function callAPI(endpoint, options = {}) {
 
   let res = await fetch(API_BASE + endpoint, options);
 
-  if (res.status === 401) {
+  if (res.status === 401 && refreshToken) {
     // Access token hết hạn, thử refresh
     const newAccessToken = await refreshAccessToken(refreshToken);
     if (newAccessToken) {
@@ -51,6 +74,4 @@ async function callAPI(endpoint, options = {}) {
   } else {
     return res.text(); // hoặc trả về { message: text } nếu bạn cần đồng nhất
   }
-
-
 }
