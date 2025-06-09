@@ -50,7 +50,7 @@ def products():
 def add_product():
     return render_template('add-product.html')
 
-@app.route('/navbar.html')
+@app.route('/navbar')
 def navbar():
     return render_template('navbar.html')
 
