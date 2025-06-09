@@ -76,5 +76,4 @@ app.register_blueprint(cart_bp, url_prefix='/api/cart')
 app.register_blueprint(user_bp, url_prefix='/api/users')
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 30000))  # Lấy port từ biến môi trường, mặc định 30000
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=30000, debug=True)
