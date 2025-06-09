@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Danh sách sản phẩm</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+
+
+  <style>
+  #productList li {
+    display: 10px;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px;
+    border-bottom: 1px solid #ccc;
+  }
+
+  .add-to-cart-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .add-to-cart-btn:hover {
+    background-color: #218838;
+  }
+
+#productList li {
+  padding: 10px;
+  border-bottom: 1px solid #ccc;
+  list-style: none;
+  display: block;
+}
+
+.product-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 0;
+  padding-bottom: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.product-name {
+  flex: 1;
+  font-weight: bold;
+  text-align: left;
+}
+
+.product-price {
+  flex: 1;
+  text-align: center;
+}
+
+.product-action {
+  flex: 1;
+  text-align: right;
+}
+
+.product-description {
+  margin-top: 1px;
+  font-style: italic;
+  color: gray;
+  padding-left: 1px;
+}
+
+.quantity-input {
+  width: 50px;
+  padding: 4px;
+  font-size: 14px;
+}
+
+
+
+</style>
+
+</head>
+<body>
+  <!-- Navbar -->
+  <nav>
+    <div class="nav-left">
+      <a href="index.html">Trang chủ</a>
+      <a href="products.html">Sản phẩm</a>
+    </div>
+    <div class="nav-right">
+      <a href="signup.html">Đăng ký</a>
+      <a href="login.html">Đăng nhập</a>
+      <a href="#" id="logout-link" style="display:none;">Đăng xuất</a>
+      <a href="add-product.html" id="admin-link" style="display:none;">Thêm sản phẩm</a>
+      <a href="cart.html" id="cart-link" style="display:none;">Giỏ hàng</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h2>Danh sách sản phẩm</h2>
+    <ul id="productList"></ul>
+    <p id="error" class="message error"></p>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+
+    const signupLink = document.querySelector('a[href="signup.html"]');
+    const loginLink = document.querySelector('a[href="login.html"]');
+    const logoutLink = document.getElementById('logout-link');
+    const adminLink = document.getElementById('admin-link');
+    const cartLink = document.getElementById('cart-link');
+
+    if (token) {
+      // Đã đăng nhập
+      signupLink.style.display = 'none';
+      loginLink.style.display = 'none';
+      logoutLink.style.display = 'inline-block';
+
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.role === 'admin') {
+          adminLink.style.display = 'inline-block';
+          cartLink.style.display = 'none';
+        } else if (payload.role === 'user') {
+          cartLink.style.display = 'inline-block';
+          adminLink.style.display = 'none';
+        }
+      } catch(e) {
+        console.error(e);
+      }
+
+      fetchProducts(token);
+
+    } else {
+      // Chưa đăng nhập
+      signupLink.style.display = 'inline-block';
+      loginLink.style.display = 'inline-block';
+      logoutLink.style.display = 'none';
+      adminLink.style.display = 'none';
+      cartLink.style.display = 'none';
+
+      document.getElementById('error').textContent = 'Bạn cần đăng nhập để xem sản phẩm.';
+    }
+
+    logoutLink.addEventListener('click', () => {
+  const refreshToken = localStorage.getItem('refresh_token');
+  if (!refreshToken) {
+    alert('Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn.');
+    window.location.href = 'login.html';
+    return;
+  }
+
+  fetch("http://localhost:30000/auth/logout", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ refresh_token: refreshToken })  // Bổ sung body JSON
+  })
+  .then(res => {
+    if (!res.ok) {
+      return res.json().then(err => {
+        throw new Error(err.message || 'Lỗi khi đăng xuất');
+      });
+    }
+    return res.json();
+  })
+  .then(data => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("refresh_token");
+    alert(data.message || "Đăng xuất thành công");
+    window.location.href = "login.html";
+  })
+  .catch(err => {
+    console.error(err);
+    alert(err.message || "Lỗi kết nối máy chủ");
+    localStorage.removeItem("token");
+    localStorage.removeItem("refresh_token");
+    window.location.href = "login.html";
+  });
+});
+
+
+
+function fetchProducts() {
+  callAPI('/api/products', { method: 'GET' })
+    .then((data) => {
+      const list = document.getElementById('productList');
+      list.innerHTML = '';
+
+        data.forEach((p) => {
+          const li = document.createElement('li');
+
+          
+        li.innerHTML = `
+          <div class="product-row">
+            <div class="product-name">${p.name}</div>
+            <div class="product-price">${p.price.toLocaleString()} VND</div>
+          <div class="product-action">
+            <input type="number" class="quantity-input" min="1" value="1" style="width: 60px; margin-right: 6px;" />
+            <button class="add-to-cart-btn" data-id="${p.id}">+ Giỏ hàng</button>
+          </div>
+
+          </div>
+          <div class="product-description">${p.description || 'Không có mô tả'}</div>
+        `;
+            list.appendChild(li);
+          });
+
+
+      document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+        button.addEventListener('click', () => {
+          const productId = parseInt(button.dataset.id);
+
+          const quantityInput = button.previousElementSibling;
+          const quantity = parseInt(quantityInput.value) || 1;
+
+          fetch('http://localhost:30000/api/cart', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({ product_id: productId, quantity: quantity })
+          })
+          .then(res => res.json())
+          .then(data => {
+            alert(data.message || 'Đã thêm vào giỏ hàng!');
+          })
+          .catch(err => {
+            console.error(err);
+            alert('Lỗi khi thêm vào giỏ hàng!');
+          });
+        });
+      });
+
+
+        document.getElementById('error').textContent = '';
+      })
+      .catch((err) => {
+        document.getElementById('error').textContent = err.message;
+      });
+    }
+  </script>
+</body>
+</html>

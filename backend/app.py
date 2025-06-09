@@ -2,7 +2,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from flask import Flask, g, jsonify
+from flask import Flask, g, jsonify, render_template
 from flask_cors import CORS
 from db import init_db, get_db, close_db
 from limiter import limiter
@@ -28,7 +28,31 @@ with app.app_context():
 
 @app.route('/')
 def home():
-    return '🚀 API is up and running!'
+    return render_template('index.html')
+
+@app.route('/signup')
+def signup():
+    return render_template('signup.html')
+
+@app.route('/login')
+def login():
+    return render_template('login.html')
+
+@app.route('/cart')
+def cart():
+    return render_template('cart.html')
+
+@app.route('/products')
+def products():
+    return render_template('products.html')
+
+@app.route('/add-product')
+def add_product():
+    return render_template('add-product.html')
+
+@app.route('/navbar')
+def navbar():
+    return render_template('navbar')
 
 @app.before_request
 def before_request():

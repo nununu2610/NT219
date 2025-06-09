@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Giỏ hàng của bạn</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+
+
+  <style>
+.cart-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid #ccc;
+}
+
+.remove-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.remove-btn:hover {
+  background-color: #c82333;
+}
+</style>
+
+
+</head>
+<body>
+  <!-- Navbar -->
+  <nav>
+    <div class="nav-left">
+      <a href="index.html">Trang chủ</a>
+      <a href="products.html">Sản phẩm</a>
+    </div>
+    <div class="nav-right">
+      <a href="cart.html">Giỏ hàng</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h2>Giỏ hàng của bạn</h2>
+    <ul id="cartList"></ul>
+    <p id="message" class="message error"></p>
+  </div>
+
+<script>
+  const cartList = document.getElementById('cartList');
+  const message = document.getElementById('message');
+  const token = localStorage.getItem('token');
+
+  if (!token) {
+    message.textContent = 'Bạn cần đăng nhập để xem giỏ hàng.';
+  } else {
+    // Gọi API lấy giỏ hàng
+    callAPI('/api/cart', {
+      method: 'GET',
+    })
+    .then(data => {
+      if (!Array.isArray(data) || data.length === 0) {
+        cartList.innerHTML = '<li>Giỏ hàng trống.</li>';
+        return;
+      }
+
+      cartList.innerHTML = '';
+      data.forEach(item => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <div class="cart-item">
+            <div>
+              <strong>${item.product_name}</strong><br>
+              Số lượng: ${item.quantity}
+            </div>
+            <div>
+              <button data-id="${item.id}" class="remove-btn">Xóa</button>
+            </div>
+          </div>
+        `;
+        cartList.appendChild(li);
+      });
+
+      // Gán sự kiện xóa
+      document.querySelectorAll('.remove-btn').forEach(button => {
+        button.addEventListener('click', async () => {
+          const cartId = button.dataset.id;
+          try {
+            const result = await callAPI(`/api/cart/${cartId}`, {
+              method: 'DELETE'
+            });
+            alert(result.message || 'Xóa thành công');
+            location.reload();
+          } catch (err) {
+            console.error(err);
+            alert('Lỗi khi xóa sản phẩm');
+          }
+        });
+      });
+    })
+    .catch(err => {
+      message.textContent = err.message || 'Lỗi khi lấy giỏ hàng';
+    });
+  }
+</script>
+
+</body>
+</html>
