@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <title>Đăng ký</title>
-  <link rel="stylesheet" href="static/css/style.css" />
-  <script src="static/js/api.js"></script>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <script src="/static/js/api.js"></script>
 </head>
 <body>
   <!-- Navbar -->
   <nav>
     <div class="nav-left">
-      <a href="{{ url_for('home') }}">Trang chủ</a>
-      <a href="{{ url_for('products') }}">Sản phẩm</a>
+      <a href="/index">Trang chủ</a>
+      <a href="/products">Sản phẩm</a>
     </div>
     <div class="nav-right">
-      <a href="{{ url_for('signup') }}">Đăng ký</a>
-      <a href="{{ url_for('login') }}">Đăng nhập</a>
-      <a href="{{ url_for('add_product') }}" id="admin-link" style="display:none;">Thêm sản phẩm</a>
+      <a href="/signup">Đăng ký</a>
+      <a href="/login">Đăng nhập</a>
+      <a href="/add-product" id="admin-link" style="display:none;">Thêm sản phẩm</a>
     </div>
   </nav>
 
@@ -36,40 +36,51 @@
     <p id="message" class="message"></p>
 
     <p>
-      Đã có tài khoản? <a href="{{ url_for('login') }}">Đăng nhập</a>
+      Đã có tài khoản? <a href="/login">Đăng nhập</a>
     </p>
   </div>
 
   <script>
-    document.getElementById('signupForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value.trim();
-      const role = document.getElementById('role').value;
+    const form = document.getElementById('signupForm');
+    const messageEl = document.getElementById('message');
 
-      const messageEl = document.getElementById('message');
-      messageEl.textContent = '';  // Xóa message cũ
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = form.username.value.trim();
+      const password = form.password.value.trim();
+      const role = form.role.value;
 
       if (!username || !password || !role) {
         messageEl.textContent = 'Vui lòng điền đầy đủ thông tin.';
         messageEl.className = 'message error';
         return;
       }
-      callAPI('/auth/signup', {
-        method: 'POST',
-        body: JSON.stringify({ username, password, role })
-      })
-      .then(data => {
-        messageEl.textContent = 'Đăng ký thành công! Chuyển sang trang đăng nhập...';
-        messageEl.className = 'message success';
-        setTimeout(() => {
-          window.location.href = "{{ url_for('login') }}";
-        }, 2000);
-      })
-      .catch(error => {
-        messageEl.textContent = error.message || 'Đăng ký thất bại';
+
+      try {
+        const res = await fetch('http://localhost:30000/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password, role })
+        });
+
+        const data = await res.json();
+
+        if (res.status === 429) {
+          messageEl.textContent = data.message || 'Bạn đã gửi quá nhiều yêu cầu, vui lòng thử lại sau.';
+          messageEl.className = 'message error';
+        } else if (res.ok) {
+          messageEl.textContent = 'Đăng ký thành công! Chuyển sang trang đăng nhập...';
+          messageEl.className = 'message success';
+          setTimeout(() => window.location.href = '/login', 2000);
+        } else {
+          messageEl.textContent = data.message || 'Đăng ký thất bại';
+          messageEl.className = 'message error';
+        }
+      } catch (err) {
+        console.error('Lỗi khi gọi API signup:', err);
+        messageEl.textContent = 'Lỗi kết nối đến máy chủ';
         messageEl.className = 'message error';
-      });
+      }
     });
   </script>
 </body>

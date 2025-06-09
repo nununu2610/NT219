@@ -3,22 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <title>Danh sách sản phẩm</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
-  <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <script src="/static/js/api.js"></script>
 </head>
 <body>
   <!-- Navbar -->
   <nav>
     <div class="nav-left">
-      <a href="{{ url_for('index') }}">Trang chủ</a>
-      <a href="{{ url_for('products_page') }}">Sản phẩm</a>
+      <a href="/index">Trang chủ</a>
+      <a href="/products">Sản phẩm</a>
     </div>
     <div class="nav-right">
-      <a href="{{ url_for('signup_page') }}" id="signup-link">Đăng ký</a>
-      <a href="{{ url_for('login_page') }}" id="login-link">Đăng nhập</a>
+      <a href="/signup" id="signup-link">Đăng ký</a>
+      <a href="/login" id="login-link">Đăng nhập</a>
       <a href="#" id="logout-link" style="display:none;">Đăng xuất</a>
-      <a href="{{ url_for('add_product_page') }}" id="admin-link" style="display:none;">Thêm sản phẩm</a>
-      <a href="{{ url_for('cart_page') }}" id="cart-link" style="display:none;">Giỏ hàng</a>
+      <a href="/add-product" id="admin-link" style="display:none;">Thêm sản phẩm</a>
+      <a href="/cart" id="cart-link" style="display:none;">Giỏ hàng</a>
     </div>
   </nav>
 
@@ -64,83 +64,90 @@
       document.getElementById('error').textContent = 'Bạn cần đăng nhập để xem sản phẩm.';
     }
 
-    logoutLink.addEventListener('click', () => {
+    logoutLink.addEventListener('click', async () => {
       if (!refreshToken) {
         alert('Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn.');
-        window.location.href = "{{ url_for('login_page') }}";
+        window.location.href = "/login";
         return;
       }
-
-      fetch("http://localhost:30000/auth/logout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ refresh_token: refreshToken }),
-      })
-      .then(res => res.json())
-      .then(data => {
+      try {
+        const res = await fetch("http://localhost:30000/auth/logout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refresh_token: refreshToken }),
+        });
+        const data = await res.json();
         localStorage.removeItem("token");
         localStorage.removeItem("refresh_token");
         alert(data.message || "Đăng xuất thành công");
-        window.location.href = "{{ url_for('login_page') }}";
-      })
-      .catch(err => {
+        window.location.href = "/login";
+      } catch (err) {
         console.error(err);
         localStorage.removeItem("token");
         localStorage.removeItem("refresh_token");
         alert("Lỗi khi đăng xuất");
-        window.location.href = "{{ url_for('login_page') }}";
-      });
+        window.location.href = "/login";
+      }
     });
 
-    function fetchProducts() {
-      callAPI('/api/products', { method: 'GET' })
-        .then(data => {
-          const list = document.getElementById('productList');
-          list.innerHTML = '';
-
-          data.forEach(p => {
-            const li = document.createElement('li');
-            li.innerHTML = `
-              <div class="product-row">
-                <div class="product-name">${p.name}</div>
-                <div class="product-price">${p.price.toLocaleString()} VND</div>
-                <div class="product-action">
-                  <input type="number" class="quantity-input" min="1" value="1" />
-                  <button class="add-to-cart-btn" data-id="${p.id}">+ Giỏ hàng</button>
-                </div>
-              </div>
-              <div class="product-description">${p.description || 'Không có mô tả'}</div>
-            `;
-            list.appendChild(li);
-          });
-
-          document.querySelectorAll('.add-to-cart-btn').forEach(button => {
-            button.addEventListener('click', () => {
-              const productId = parseInt(button.dataset.id);
-              const quantityInput = button.previousElementSibling;
-              const quantity = parseInt(quantityInput.value) || 1;
-
-              callAPI('/api/cart', {
-                method: 'POST',
-                body: JSON.stringify({ product_id: productId, quantity: quantity })
-              })
-              .then(data => {
-                alert(data.message || 'Đã thêm vào giỏ hàng!');
-              })
-              .catch(err => {
-                console.error(err);
-                alert('Lỗi khi thêm vào giỏ hàng!');
-              });
-            });
-          });
-
-          document.getElementById('error').textContent = '';
-        })
-        .catch(err => {
-          document.getElementById('error').textContent = err.message || 'Không thể tải sản phẩm.';
+    async function fetchProducts() {
+      try {
+        const res = await fetch("http://localhost:30000/api/products", {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
         });
+        if (!res.ok) throw new Error("Không thể tải sản phẩm.");
+        const data = await res.json();
+
+        const list = document.getElementById('productList');
+        list.innerHTML = '';
+
+        data.forEach(p => {
+          const li = document.createElement('li');
+          li.innerHTML = `
+            <div class="product-row">
+              <div class="product-name">${p.name}</div>
+              <div class="product-price">${p.price.toLocaleString()} VND</div>
+              <div class="product-action">
+                <input type="number" class="quantity-input" min="1" value="1" />
+                <button class="add-to-cart-btn" data-id="${p.id}">+ Giỏ hàng</button>
+              </div>
+            </div>
+            <div class="product-description">${p.description || 'Không có mô tả'}</div>
+          `;
+          list.appendChild(li);
+        });
+
+        document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+          button.addEventListener('click', async () => {
+            const productId = parseInt(button.dataset.id);
+            const quantityInput = button.previousElementSibling;
+            const quantity = parseInt(quantityInput.value) || 1;
+
+            try {
+              const res = await fetch("http://localhost:30000/api/cart", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({ product_id: productId, quantity: quantity })
+              });
+              const data = await res.json();
+              alert(data.message || 'Đã thêm vào giỏ hàng!');
+            } catch (err) {
+              console.error(err);
+              alert('Lỗi khi thêm vào giỏ hàng!');
+            }
+          });
+        });
+
+        document.getElementById('error').textContent = '';
+      } catch (err) {
+        document.getElementById('error').textContent = err.message || 'Không thể tải sản phẩm.';
+      }
     }
   </script>
 </body>

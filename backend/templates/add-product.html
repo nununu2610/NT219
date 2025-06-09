@@ -1,24 +1,23 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  
   <meta charset="UTF-8" />
   <title>Thêm sản phẩm</title>
-  <link rel="stylesheet" href="static/css/style.css" />
-
-
+  <link rel="stylesheet" href="/static/css/style.css" />
 </head>
 <body>
   <!-- Navbar -->
   <nav>
     <div class="nav-left">
-      <a href="index.html">Trang chủ</a>
-      <a href="products.html">Sản phẩm</a>
+      <a href="/index">Trang chủ</a>
+      <a href="/products">Sản phẩm</a>
     </div>
     <div class="nav-right">
-      <a href="signup.html">Đăng ký</a>
-      <a href="login.html">Đăng nhập</a>
-      <a href="add-product.html" id="admin-link" style="display:none;">Thêm sản phẩm</a>
+      <a href="/signup" id="signup-link">Đăng ký</a>
+      <a href="/login" id="login-link">Đăng nhập</a>
+      <a href="/cart" id="cart-link" style="display:none;">Giỏ hàng</a>
+      <a href="/add-product" id="admin-link" style="display:none;">Thêm sản phẩm</a>
+      <a href="#" id="logout-link" style="display:none;">Đăng xuất</a>
     </div>
   </nav>
 
@@ -34,40 +33,99 @@
     <p id="message" class="message"></p>
   </div>
 
-  <script src="js/api.js"></script>
+  <script src="/js/api.js"></script>
 
   <script>
-    // Hiện link admin nếu role là admin
-    const token = localStorage.getItem('token');
-    if (token) {
+    // Hàm hiển thị navbar theo token + role
+    function setupNavbar() {
+      const token = localStorage.getItem('token');
+      const refreshToken = localStorage.getItem('refresh_token');
+
+      if (!token) {
+        // Chưa đăng nhập
+        document.getElementById('signup-link').style.display = 'inline-block';
+        document.getElementById('login-link').style.display = 'inline-block';
+        document.getElementById('cart-link').style.display = 'none';
+        document.getElementById('admin-link').style.display = 'none';
+        document.getElementById('logout-link').style.display = 'none';
+        return false;
+      }
+
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
+        document.getElementById('signup-link').style.display = 'none';
+        document.getElementById('login-link').style.display = 'none';
+        document.getElementById('logout-link').style.display = 'inline-block';
+
         if (payload.role === 'admin') {
           document.getElementById('admin-link').style.display = 'inline-block';
+          document.getElementById('cart-link').style.display = 'none';
+        } else if (payload.role === 'user') {
+          document.getElementById('cart-link').style.display = 'inline-block';
+          document.getElementById('admin-link').style.display = 'none';
         } else {
-          alert('Bạn không có quyền truy cập trang này!');
-          window.location.href = 'products.html';
+          document.getElementById('cart-link').style.display = 'none';
+          document.getElementById('admin-link').style.display = 'none';
         }
-      } catch (e) {
-        alert('Token không hợp lệ, vui lòng đăng nhập lại!');
-        window.location.href = 'login.html';
+
+        // Sự kiện logout
+        document.getElementById('logout-link').onclick = async () => {
+          if (refreshToken) {
+            try {
+              await fetch("http://localhost:30000/auth/logout", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ refresh_token: refreshToken }),
+              });
+            } catch(e) {
+              console.error("Lỗi logout:", e);
+            }
+          }
+          localStorage.removeItem('token');
+          localStorage.removeItem('refresh_token');
+          window.location.replace('/login');
+        };
+
+        return payload.role === 'admin';
+
+      } catch (err) {
+        console.error('Token không hợp lệ', err);
+        localStorage.removeItem('token');
+        localStorage.removeItem('refresh_token');
+        return false;
       }
-    } else {
-      alert('Bạn cần đăng nhập để truy cập trang này!');
-      window.location.href = 'login.html';
+    }
+
+    // Kiểm tra quyền admin
+    const isAdmin = setupNavbar();
+    if (!isAdmin) {
+      alert('Bạn không có quyền truy cập trang này!');
+      window.location.replace('/products');
     }
 
     document.getElementById('addProductForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const name = document.getElementById('name').value;
-      const description = document.getElementById('description').value;
+
+      const name = document.getElementById('name').value.trim();
+      const description = document.getElementById('description').value.trim();
       const price = Number(document.getElementById('price').value);
 
-
       const messageEl = document.getElementById('message');
+
+      if (!name || price < 0) {
+        messageEl.textContent = 'Vui lòng nhập đầy đủ tên và giá sản phẩm hợp lệ.';
+        messageEl.className = 'message error';
+        return;
+      }
+
       try {
+        const token = localStorage.getItem('token');
         const data = await callAPI('/api/products', {
           method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token,
+          },
           body: JSON.stringify({ name, description, price }),
         });
 
@@ -78,7 +136,6 @@
         messageEl.textContent = err.message || 'Thêm sản phẩm thất bại';
         messageEl.className = 'message error';
       }
-
     });
   </script>
 </body>

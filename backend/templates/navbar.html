@@ -1,14 +1,14 @@
 <!-- navbar.html -->
 <nav>
   <div class="nav-left">
-    <a href="index.html">Trang chủ</a>
-    <a href="products.html">Sản phẩm</a>
+    <a href="/index">Trang chủ</a>
+    <a href="/products">Sản phẩm</a>
   </div>
   <div class="nav-right" id="nav-right">
-    <a href="signup.html" id="signup-link">Đăng ký</a>
-    <a href="login.html" id="login-link">Đăng nhập</a>
-    <a href="cart.html" id="cart-link" style="display: none;">Giỏ hàng</a>
-    <a href="add-product.html" id="admin-link" style="display: none;">Thêm sản phẩm</a>
+    <a href="/signup" id="signup-link">Đăng ký</a>
+    <a href="/login" id="login-link">Đăng nhập</a>
+    <a href="/cart" id="cart-link" style="display: none;">Giỏ hàng</a>
+    <a href="/add-product" id="admin-link" style="display: none;">Thêm sản phẩm</a>
     <a href="#" id="logout-link" style="display: none;">Đăng xuất</a>
   </div>
 </nav>
@@ -33,7 +33,7 @@
       document.getElementById('logout-link').addEventListener('click', () => {
         localStorage.removeItem('token');
         localStorage.removeItem('refresh_token');
-        window.location.href = 'login.html';
+        window.location.href = '/login';
       });
 
     } catch (err) {

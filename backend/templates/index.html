@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <title>Trang chủ</title>
-  <link rel="stylesheet" href="static/css/style.css" />
+  <link rel="stylesheet" href="/static/css/style.css" />
 
 </head>
 <body>
   <!-- Navbar (load từ file) -->
   <div id="navbar-placeholder"></div>
   <script>
-    fetch('/navbar.html')
+    fetch('/navbar')
       .then(res => res.text())
       .then(html => {
         document.getElementById('navbar-placeholder').innerHTML = html;
