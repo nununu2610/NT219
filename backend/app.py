@@ -52,7 +52,7 @@ def add_product():
 
 @app.route('/navbar')
 def navbar():
-    return render_template('navbar')
+    return render_template('navbar.html')
 
 @app.before_request
 def before_request():
