@@ -26,6 +26,10 @@ CORS(app,
 with app.app_context():
     init_db()
 
+@app.route('/')
+def home():
+    return '🚀 API is up and running!'
+
 @app.before_request
 def before_request():
     g.db = get_db()
