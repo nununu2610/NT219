@@ -3,39 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <title>Trang chủ</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <link rel="stylesheet" href="static/css/style.css" />
 
 </head>
 <body>
-  <!-- Navbar -->
-  <nav>
-    <div class="nav-left">
-      <a href="index.html">Trang chủ</a>
-      <a href="products.html">Sản phẩm</a>
-    </div>
-    <div class="nav-right">
-      <a href="signup.html">Đăng ký</a>
-      <a href="login.html">Đăng nhập</a>
-      <a href="add-product.html" id="admin-link" style="display:none;">Thêm sản phẩm</a>
-    </div>
-  </nav>
+  <!-- Navbar (load từ file) -->
+  <div id="navbar-placeholder"></div>
+  <script>
+    fetch('navbar.html')
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById('navbar-placeholder').innerHTML = html;
+      });
+  </script>
 
   <div class="container">
     <h1>Chào mừng đến với ứng dụng quản lý doanh nghiệp nhỏ</h1>
     <p>Hãy đăng ký hoặc đăng nhập để bắt đầu!</p>
   </div>
-
-  <script>
-    // Ẩn/hiện link "Thêm sản phẩm" nếu role admin
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.role === 'admin') {
-          document.getElementById('admin-link').style.display = 'inline-block';
-        }
-      } catch (e) {}
-    }
-  </script>
 </body>
 </html>
