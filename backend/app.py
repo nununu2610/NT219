@@ -26,7 +26,7 @@ CORS(app,
 with app.app_context():
     init_db()
 
-@app.route('/index')
+@app.route('/')
 def index():
     return render_template('index.html')
 
