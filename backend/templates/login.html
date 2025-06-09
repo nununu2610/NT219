@@ -42,7 +42,7 @@
     const password = form.password.value;
 
     try {
-      const res = await fetch('https://flask-backend.onrender.com/auth/login', {
+      const res = await fetch('https://flask-backend-s1fn.onrender.com/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })

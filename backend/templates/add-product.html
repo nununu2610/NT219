@@ -72,7 +72,7 @@
         document.getElementById('logout-link').onclick = async () => {
           if (refreshToken) {
             try {
-              await fetch("https://flask-backend.onrender.com/auth/logout", {
+              await fetch("https://flask-backend-s1fn.onrender.com/auth/logout", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ refresh_token: refreshToken }),
