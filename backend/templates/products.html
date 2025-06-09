@@ -92,7 +92,7 @@
 
     async function fetchProducts() {
       try {
-        const res = await fetch("https://flask-backend.onrender.com/api/products", {
+        const res = await fetch("https://flask-backend-s1fn.onrender.com/api/products", {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`
@@ -127,7 +127,7 @@
             const quantity = parseInt(quantityInput.value) || 1;
 
             try {
-              const res = await fetch( "https://flask-backend.onrender.com/api/cart", {
+              const res = await fetch( "https://flask-backend-s1fn.onrender.com/api/cart", {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
