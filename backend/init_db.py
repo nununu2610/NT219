@@ -1,4 +1,4 @@
-from app import app  # import biến app Flask trực tiếp
+from app import app 
 from db import init_db
 
 with app.app_context():

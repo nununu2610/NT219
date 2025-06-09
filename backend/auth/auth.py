@@ -4,6 +4,7 @@ import bcrypt, jwt, datetime
 from db import get_db, log_action
 from middleware import refresh_token_required
 from refresh_token_utils import generate_refresh_token, save_refresh_token, revoke_refresh_token
+from limiter import limiter
 
 auth_bp = Blueprint('auth', __name__)
 SECRET_KEY = "supersecret"
@@ -36,7 +37,9 @@ def signup():
     except Exception as e:
         return jsonify({"message": f"Lỗi server: {str(e)}"}), 500
 
+
 @auth_bp.route('/login', methods=['POST', 'OPTIONS'])
+@limiter.limit("5 per minute")   # Moi IP chi ddc dang nhap 5lan/phut
 def login():
     if request.method == 'OPTIONS':
         return '', 200
