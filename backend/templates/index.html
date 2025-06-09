@@ -10,7 +10,7 @@
   <!-- Navbar (load từ file) -->
   <div id="navbar-placeholder"></div>
   <script>
-    fetch('/navbar.html')
+    fetch('/navbar')
       .then(res => res.text())
       .then(html => {
         document.getElementById('navbar-placeholder').innerHTML = html;
