@@ -71,7 +71,7 @@
         return;
       }
       try {
-        const res = await fetch("http://localhost:30000/auth/logout", {
+        const res = await fetch("https://flask-backend.onrender.com/auth/logout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ refresh_token: refreshToken }),
@@ -92,7 +92,7 @@
 
     async function fetchProducts() {
       try {
-        const res = await fetch("http://localhost:30000/api/products", {
+        const res = await fetch("https://flask-backend.onrender.com/api/products", {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`
@@ -127,7 +127,7 @@
             const quantity = parseInt(quantityInput.value) || 1;
 
             try {
-              const res = await fetch("http://localhost:30000/api/cart", {
+              const res = await fetch( "https://flask-backend.onrender.com/api/cart", {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
