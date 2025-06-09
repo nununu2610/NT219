@@ -17,7 +17,7 @@ app = Flask(__name__)
 limiter.init_app(app)  # gắn limiter vào app
 
 CORS(app,
-     origins=["http://localhost:8000", "https://nt219-xa3k.onrender.com"],
+     origins=["http://localhost:8000", "https://nt219-xa3k.onrender.com", "https://flask-backend-s1fn.onrender.com"],
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
      allow_headers=["Content-Type", "Authorization"],
      supports_credentials=True,
