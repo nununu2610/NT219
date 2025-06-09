@@ -76,4 +76,6 @@ app.register_blueprint(cart_bp, url_prefix='/api/cart')
 app.register_blueprint(user_bp, url_prefix='/api/users')
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=30000, debug=True)
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
