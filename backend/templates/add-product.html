@@ -90,37 +90,42 @@
       });
     });
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const name = nameInput.value;
-      const description = descInput.value;
-      const price = Number(priceInput.value);
-      const editingId = editingIdInput.value;
+    form.addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-      try {
-        if (editingId) {
-          await callAPI(`/api/products/${editingId}`, {
-            method: 'PUT',
-            body: JSON.stringify({ name, description, price }),
-          });
-          messageEl.textContent = 'Cập nhật thành công!';
-        } else {
-          await callAPI('/api/products', {
-            method: 'POST',
-            body: JSON.stringify({ name, description, price }),
-          });
-          messageEl.textContent = 'Thêm sản phẩm thành công!';
-        }
+  const product = {
+    name: nameInput.value,
+    description: descInput.value,
+    price: parseFloat(priceInput.value)
+  };
 
-        form.reset();
-        editingIdInput.value = '';
-        formTitle.textContent = 'Thêm sản phẩm mới';
-        submitBtn.textContent = 'Thêm';
-        loadProducts();
-      } catch (err) {
-        messageEl.textContent = err.message || 'Có lỗi xảy ra!';
-      }
-    });
+  const editingId = editingIdInput.value;
+  const url = editingId ? `/api/products/${editingId}` : "/api/products";
+  const method = editingId ? "PUT" : "POST";
+
+  const res = await fetch(url, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(product)
+  });
+
+  if (res.ok) {
+    alert(editingId ? "Cập nhật sản phẩm thành công!" : "Thêm sản phẩm thành công!");
+    editingIdInput.value = '';
+    formTitle.textContent = 'Thêm sản phẩm mới';
+    submitBtn.textContent = 'Thêm';
+    nameInput.value = '';
+    descInput.value = '';
+    priceInput.value = '';
+    loadProducts(); // reload danh sách
+  } else {
+    alert("Lỗi khi lưu sản phẩm");
+  }
+});
+
 
     function loadProducts() {
       callAPI('/api/products', { method: 'GET' })
@@ -157,14 +162,25 @@
     }
 
     function deleteProduct(id) {
-      if (!confirm('Bạn có chắc muốn xóa sản phẩm này?')) return;
+  if (!confirm('Bạn có chắc muốn xóa sản phẩm này?')) return;
 
-      callAPI(`/api/products/${id}`, { method: 'DELETE' })
-        .then(() => {
-          alert('Đã xóa sản phẩm!');
-          loadProducts();
-        })
-        .catch(err => {
-          alert('Lỗi khi xóa: ' + err.message);
-        });
+  fetch(`/api/products/${id}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`
     }
+  })
+    .then(res => {
+      if (res.ok) {
+        alert("Xóa thành công!");
+        loadProducts();
+      } else {
+        return res.json().then(data => {
+          throw new Error(data.message || "Xóa thất bại");
+        });
+      }
+    })
+    .catch(err => {
+      alert("Lỗi khi xóa: " + err.message);
+    });
+}
