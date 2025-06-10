@@ -2,11 +2,25 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <title>Thêm sản phẩm</title>
+  <title>Quản lý sản phẩm</title>
   <link rel="stylesheet" href="/static/css/style.css" />
+  <style>
+    .product-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #ccc;
+      padding: 5px 0;
+    }
+    .product-name, .product-price, .product-actions {
+      flex: 1;
+    }
+    .product-actions button {
+      margin-left: 5px;
+    }
+  </style>
 </head>
 <body>
-  <!-- Navbar -->
   <nav>
     <div class="nav-left">
       <a href="/">Trang chủ</a>
@@ -15,129 +29,142 @@
     <div class="nav-right">
       <a href="/signup" id="signup-link">Đăng ký</a>
       <a href="/login" id="login-link">Đăng nhập</a>
-      <a href="/cart" id="cart-link" style="display:none;">Giỏ hàng</a>
-      <a href="/add-product" id="admin-link" style="display:none;">Thêm sản phẩm</a>
       <a href="#" id="logout-link" style="display:none;">Đăng xuất</a>
+      <a href="/add-product" id="admin-link" style="display:none;">Thêm sản phẩm</a>
+      <a href="/cart" id="cart-link" style="display:none;">Giỏ hàng</a>
     </div>
   </nav>
 
   <div class="container">
-    <h2>Thêm sản phẩm mới</h2>
+    <h2 id="form-title">Thêm sản phẩm mới</h2>
     <form id="addProductForm">
       <input type="text" id="name" placeholder="Tên sản phẩm" required />
       <input type="text" id="description" placeholder="Mô tả sản phẩm" />
       <input type="number" id="price" placeholder="Giá sản phẩm" required min="0" />
-      <button type="submit">Thêm</button>
+      <button type="submit" id="submitBtn">Thêm</button>
+      <input type="hidden" id="editingProductId" />
     </form>
-
     <p id="message" class="message"></p>
+
+    <h3>Danh sách sản phẩm</h3>
+    <ul id="productList"></ul>
   </div>
 
   <script src="/static/js/config.js"></script>
   <script src="/static/js/api.js"></script>
-
   <script>
-    // Hàm hiển thị navbar theo token + role
-    function setupNavbar() {
-      const token = localStorage.getItem('token');
-      const refreshToken = localStorage.getItem('refresh_token');
+    const token = localStorage.getItem('token');
+    const productList = document.getElementById('productList');
+    const form = document.getElementById('addProductForm');
+    const messageEl = document.getElementById('message');
+    const nameInput = document.getElementById('name');
+    const descInput = document.getElementById('description');
+    const priceInput = document.getElementById('price');
+    const editingIdInput = document.getElementById('editingProductId');
+    const submitBtn = document.getElementById('submitBtn');
+    const formTitle = document.getElementById('form-title');
 
+    document.addEventListener('DOMContentLoaded', () => {
       if (!token) {
-        // Chưa đăng nhập
-        document.getElementById('signup-link').style.display = 'inline-block';
-        document.getElementById('login-link').style.display = 'inline-block';
-        document.getElementById('cart-link').style.display = 'none';
-        document.getElementById('admin-link').style.display = 'none';
-        document.getElementById('logout-link').style.display = 'none';
-        return false;
+        alert("Bạn cần đăng nhập để truy cập!");
+        return (window.location.href = '/login');
       }
 
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        document.getElementById('signup-link').style.display = 'none';
-        document.getElementById('login-link').style.display = 'none';
-        document.getElementById('logout-link').style.display = 'inline-block';
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.role !== 'admin') {
+        alert("Bạn không có quyền truy cập trang này!");
+        return (window.location.href = '/products');
+      }
 
-        if (payload.role === 'admin') {
-          document.getElementById('admin-link').style.display = 'inline-block';
-          document.getElementById('cart-link').style.display = 'none';
-        } else if (payload.role === 'user') {
-          document.getElementById('cart-link').style.display = 'inline-block';
-          document.getElementById('admin-link').style.display = 'none';
+      document.getElementById('signup-link').style.display = 'none';
+      document.getElementById('login-link').style.display = 'none';
+      document.getElementById('logout-link').style.display = 'inline-block';
+      document.getElementById('admin-link').style.display = 'inline-block';
+
+      loadProducts();
+
+      document.getElementById('logout-link').addEventListener('click', async () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("refresh_token");
+        window.location.href = "/login";
+      });
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = nameInput.value;
+      const description = descInput.value;
+      const price = Number(priceInput.value);
+      const editingId = editingIdInput.value;
+
+      try {
+        if (editingId) {
+          await callAPI(`/api/products/${editingId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ name, description, price }),
+          });
+          messageEl.textContent = 'Cập nhật thành công!';
         } else {
-          document.getElementById('cart-link').style.display = 'none';
-          document.getElementById('admin-link').style.display = 'none';
+          await callAPI('/api/products', {
+            method: 'POST',
+            body: JSON.stringify({ name, description, price }),
+          });
+          messageEl.textContent = 'Thêm sản phẩm thành công!';
         }
 
-        // Sự kiện logout
-        document.getElementById('logout-link').onclick = async () => {
-          if (refreshToken) {
-            try {
-              await fetch("https://flask-backend-s1fn.onrender.com/auth/logout", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ refresh_token: refreshToken }),
-              });
-            } catch(e) {
-              console.error("Lỗi logout:", e);
-            }
-          }
-          localStorage.removeItem('token');
-          localStorage.removeItem('refresh_token');
-          window.location.replace('/login');
-        };
-
-        return payload.role === 'admin';
-
+        form.reset();
+        editingIdInput.value = '';
+        formTitle.textContent = 'Thêm sản phẩm mới';
+        submitBtn.textContent = 'Thêm';
+        loadProducts();
       } catch (err) {
-        console.error('Token không hợp lệ', err);
-        localStorage.removeItem('token');
-        localStorage.removeItem('refresh_token');
-        return false;
-      }
-    }
-
-    // Kiểm tra quyền admin
-    const isAdmin = setupNavbar();
-    if (!isAdmin) {
-      alert('Bạn không có quyền truy cập trang này!');
-      window.location.replace('/products');
-    }
-
-    document.getElementById('addProductForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const name = document.getElementById('name').value.trim();
-      const description = document.getElementById('description').value.trim();
-      const price = Number(document.getElementById('price').value);
-
-      const messageEl = document.getElementById('message');
-
-      if (!name || price < 0) {
-        messageEl.textContent = 'Vui lòng nhập đầy đủ tên và giá sản phẩm hợp lệ.';
-        messageEl.className = 'message error';
-        return;
-      }
-
-      try {
-        const token = localStorage.getItem('token');
-        const data = await callAPI('/api/products', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + token,
-          },
-          body: JSON.stringify({ name, description, price }),
-        });
-
-        messageEl.textContent = 'Thêm sản phẩm thành công!';
-        messageEl.className = 'message success';
-        document.getElementById('addProductForm').reset();
-      } catch (err) {
-        messageEl.textContent = err.message || 'Thêm sản phẩm thất bại';
-        messageEl.className = 'message error';
+        messageEl.textContent = err.message || 'Có lỗi xảy ra!';
       }
     });
-  </script>
-</body>
-</html>
+
+    function loadProducts() {
+      callAPI('/api/products', { method: 'GET' })
+        .then((data) => {
+          productList.innerHTML = '';
+          data.forEach(p => {
+            const li = document.createElement('li');
+          li.innerHTML = `
+            <div class="product-row">
+              <div class="product-name"><b>${p.name}</b><br><small>${p.description}</small></div>
+              <div class="product-price">${p.price.toLocaleString()} VND</div>
+              <div class="product-actions">
+                <button onclick="editProduct(${p.id}, '${p.name}', '${p.description}', ${p.price})">Sửa</button>
+                <button onclick="deleteProduct(${p.id})">Xóa</button>
+              </div>
+            </div>
+          `;
+
+            productList.appendChild(li);
+          });
+        })
+        .catch((err) => {
+          productList.innerHTML = `<li>Lỗi tải sản phẩm: ${err.message}</li>`;
+        });
+    }
+
+    function editProduct(id, name, desc, price) {
+      nameInput.value = name;
+      descInput.value = desc;
+      priceInput.value = price;
+      editingIdInput.value = id;
+      formTitle.textContent = 'Chỉnh sửa sản phẩm';
+      submitBtn.textContent = 'Cập nhật';
+    }
+
+    function deleteProduct(id) {
+      if (!confirm('Bạn có chắc muốn xóa sản phẩm này?')) return;
+
+      callAPI(`/api/products/${id}`, { method: 'DELETE' })
+        .then(() => {
+          alert('Đã xóa sản phẩm!');
+          loadProducts();
+        })
+        .catch(err => {
+          alert('Lỗi khi xóa: ' + err.message);
+        });
+    }
