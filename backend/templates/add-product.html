@@ -50,19 +50,20 @@
     <ul id="productList"></ul>
   </div>
 
-  <script src="/static/js/config.js"></script>
-  <script src="/static/js/api.js"></script>
+  <!-- Nếu có config.js/api.js riêng thì giữ lại. Nếu không thì xóa -->
+  <!-- <script src="/static/js/config.js"></script>
+  <script src="/static/js/api.js"></script> -->
+
   <script>
     const token = localStorage.getItem('token');
-    const productList = document.getElementById('productList');
-    const form = document.getElementById('addProductForm');
-    const messageEl = document.getElementById('message');
     const nameInput = document.getElementById('name');
     const descInput = document.getElementById('description');
     const priceInput = document.getElementById('price');
     const editingIdInput = document.getElementById('editingProductId');
+    const form = document.getElementById('productForm');
     const submitBtn = document.getElementById('submitBtn');
     const formTitle = document.getElementById('form-title');
+    const productList = document.getElementById('productList');
 
     document.addEventListener('DOMContentLoaded', () => {
       if (!token) {
@@ -70,103 +71,114 @@
         return (window.location.href = '/login');
       }
 
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      let payload;
+      try {
+        payload = JSON.parse(atob(token.split('.')[1]));
+      } catch (e) {
+        alert("Token không hợp lệ. Vui lòng đăng nhập lại.");
+        return (window.location.href = '/login');
+      }
+
       if (payload.role !== 'admin') {
         alert("Bạn không có quyền truy cập trang này!");
         return (window.location.href = '/products');
       }
 
+      // Hiển thị điều hướng phù hợp
       document.getElementById('signup-link').style.display = 'none';
       document.getElementById('login-link').style.display = 'none';
       document.getElementById('logout-link').style.display = 'inline-block';
       document.getElementById('admin-link').style.display = 'inline-block';
 
-      loadProducts();
-
-      document.getElementById('logout-link').addEventListener('click', async () => {
+      // Gắn logout
+      document.getElementById('logout-link').addEventListener('click', () => {
         localStorage.removeItem("token");
         localStorage.removeItem("refresh_token");
         window.location.href = "/login";
       });
+
+      loadProducts();
     });
 
     form.addEventListener("submit", async (e) => {
-  e.preventDefault();
+      e.preventDefault();
 
-  const product = {
-    name: nameInput.value,
-    description: descInput.value,
-    price: parseFloat(priceInput.value)
-  };
+      const product = {
+        name: nameInput.value,
+        description: descInput.value,
+        price: parseFloat(priceInput.value)
+      };
 
-  const editingId = editingIdInput.value;
-  const url = editingId ? `/api/products/${editingId}` : "/api/products";
-  const method = editingId ? "PUT" : "POST";
+      const editingId = editingIdInput.value;
+      const url = editingId ? `/api/products/${editingId}` : "/api/products";
+      const method = editingId ? "PUT" : "POST";
 
-  const res = await fetch(url, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(product)
-  });
+      try {
+        const res = await fetch(url, {
+          method,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(product)
+        });
 
-  if (res.ok) {
-    alert(editingId ? "Cập nhật sản phẩm thành công!" : "Thêm sản phẩm thành công!");
-    editingIdInput.value = '';
-    formTitle.textContent = 'Thêm sản phẩm mới';
-    submitBtn.textContent = 'Thêm';
-    nameInput.value = '';
-    descInput.value = '';
-    priceInput.value = '';
-    loadProducts(); // reload danh sách
-  } else {
-    alert("Lỗi khi lưu sản phẩm");
-  }
-});
-
+        if (res.ok) {
+          alert(editingId ? "Cập nhật sản phẩm thành công!" : "Thêm sản phẩm thành công!");
+          editingIdInput.value = '';
+          formTitle.textContent = 'Thêm sản phẩm mới';
+          submitBtn.textContent = 'Thêm';
+          nameInput.value = '';
+          descInput.value = '';
+          priceInput.value = '';
+          loadProducts(); // reload danh sách
+        } else {
+          const err = await res.json();
+          alert("Lỗi khi lưu sản phẩm: " + (err.message || "Không rõ lỗi"));
+        }
+      } catch (err) {
+        alert("Lỗi kết nối đến server: " + err.message);
+      }
+    });
 
     function loadProducts() {
-    const productList = document.getElementById("productList");
-    if (!productList) {
-    console.error("Không tìm thấy phần tử productList!");
-      return;
-  }
+      if (!productList) return;
 
-  callAPI('/api/products', { method: 'GET' })
-    .then((data) => {
-      console.log("Dữ liệu sản phẩm:", data);
+      fetch('/api/products', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+        .then(res => res.json())
+        .then(data => {
+          productList.innerHTML = '';
 
-      productList.innerHTML = '';
+          if (!data || data.length === 0) {
+            productList.innerHTML = '<li>Không có sản phẩm nào.</li>';
+            return;
+          }
 
-      if (data.length === 0) {
-        productList.innerHTML = '<li>Không có sản phẩm nào.</li>';
-        return;
-      }
-
-      data.forEach(p => {
-        const li = document.createElement('li');
-        const nameEscaped = encodeURIComponent(p.name);
-        const descEscaped = encodeURIComponent(p.description);
-        li.innerHTML = `
-          <div class="product-row">
-            <div class="product-name"><b>${p.name}</b><br><small>${p.description}</small></div>
-            <div class="product-price">${Number(p.price).toLocaleString()} VND</div>
-            <div class="product-actions">
-              <button onclick="editProduct(${p.id}, decodeURIComponent('${nameEscaped}'), decodeURIComponent('${descEscaped}'), ${p.price})">Sửa</button>
-              <button onclick="deleteProduct(${p.id})">Xóa</button>
-            </div>
-          </div>
-        `;
-        productList.appendChild(li);
-      });
-    })
-    .catch((err) => {
-      productList.innerHTML = `<li>Lỗi tải sản phẩm: ${err.message}</li>`;
-    });
-}
-
+          data.forEach(p => {
+            const li = document.createElement('li');
+            const nameEsc = encodeURIComponent(p.name);
+            const descEsc = encodeURIComponent(p.description);
+            li.innerHTML = `
+              <div class="product-row">
+                <div class="product-name"><b>${p.name}</b><br><small>${p.description}</small></div>
+                <div class="product-price">${Number(p.price).toLocaleString()} VND</div>
+                <div class="product-actions">
+                  <button onclick="editProduct(${p.id}, decodeURIComponent('${nameEsc}'), decodeURIComponent('${descEsc}'), ${p.price})">Sửa</button>
+                  <button onclick="deleteProduct(${p.id})">Xóa</button>
+                </div>
+              </div>
+            `;
+            productList.appendChild(li);
+          });
+        })
+        .catch(err => {
+          productList.innerHTML = `<li>Lỗi tải sản phẩm: ${err.message}</li>`;
+        });
+    }
 
     function editProduct(id, name, desc, price) {
       nameInput.value = name;
@@ -178,25 +190,28 @@
     }
 
     function deleteProduct(id) {
-  if (!confirm('Bạn có chắc muốn xóa sản phẩm này?')) return;
+      if (!confirm('Bạn có chắc muốn xóa sản phẩm này?')) return;
 
-  fetch(`/api/products/${id}`, {
-    method: 'DELETE',
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
-  })
-    .then(res => {
-      if (res.ok) {
-        alert("Xóa thành công!");
-        loadProducts();
-      } else {
-        return res.json().then(data => {
-          throw new Error(data.message || "Xóa thất bại");
+      fetch(`/api/products/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+        .then(res => {
+          if (res.ok) {
+            alert("Xóa thành công!");
+            loadProducts();
+          } else {
+            return res.json().then(data => {
+              throw new Error(data.message || "Xóa thất bại");
+            });
+          }
+        })
+        .catch(err => {
+          alert("Lỗi khi xóa: " + err.message);
         });
-      }
-    })
-    .catch(err => {
-      alert("Lỗi khi xóa: " + err.message);
-    });
-}
+    }
+  </script>
+</body>
+</html>
