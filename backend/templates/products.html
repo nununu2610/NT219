@@ -7,65 +7,70 @@
   <script src="/static/js/config.js"></script>
   <script src="/static/js/api.js"></script>
 
-<style>
-  #productList li {
-    padding: 10px;
-    border-bottom: 1px solid #ccc;
-    list-style: none;
-    display: block;
-  }
+  <style>
+    #productList {
+      padding: 0;
+    }
 
-  .add-to-cart-btn {
-    background-color: #28a745;
-    color: white;
-    border: none;
-    padding: 6px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-  }
+    #productList li {
+      padding: 12px;
+      border-bottom: 1px solid #ccc;
+      list-style: none;
+      display: block;
+    }
 
-  .add-to-cart-btn:hover {
-    background-color: #218838;
-  }
+    .product-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
 
-  .product-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-  }
+    .product-name {
+      font-weight: bold;
+      flex: 2;
+    }
 
-  .product-name {
-    flex: 1;
-    font-weight: bold;
-    text-align: left;
-  }
+    .product-price {
+      flex: 1;
+      text-align: right;
+    }
 
-  .product-price {
-    flex: 1;
-    text-align: center;
-  }
+    .product-action {
+      flex: 1;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 8px;
+    }
 
-  .product-action {
-    flex: 1;
-    text-align: right;
-  }
+    .product-description {
+      margin-top: 4px;
+      font-style: italic;
+      color: gray;
+      padding-left: 2px;
+      width: 100%;
+    }
 
-  .product-description {
-    margin-top: 1px;
-    font-style: italic;
-    color: gray;
-    padding-left: 1px;
-  }
+    .quantity-input {
+      width: 50px;
+      padding: 4px;
+      font-size: 14px;
+    }
 
-  .quantity-input {
-    width: 50px;
-    padding: 4px;
-    font-size: 14px;
-  }
-</style>
+    .add-to-cart-btn {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
 
-
+    .add-to-cart-btn:hover {
+      background-color: #218838;
+    }
+  </style>
 </head>
 <body>
   <!-- Navbar -->
@@ -152,58 +157,52 @@
     });
 
     async function fetchProducts() {
-  try {
-    console.log("Đang gọi /api/products");
-    const data = await callAPI("/api/products", {
-      method: "GET"
-    });
-    console.log("Dữ liệu sản phẩm:", data);
+      try {
+        const data = await callAPI("/api/products", { method: "GET" });
+        const list = document.getElementById('productList');
+        list.innerHTML = '';
 
-
-    const list = document.getElementById('productList');
-    list.innerHTML = '';
-
-    data.forEach(p => {
-      const li = document.createElement('li');
-      li.innerHTML = `
-        <div class="product-row">
-          <div class="product-name">${p.name}</div>
-          <div class="product-price">${p.price.toLocaleString()} VND</div>
-          <div class="product-action">
-            <input type="number" class="quantity-input" min="1" value="1" />
-            <button class="add-to-cart-btn" data-id="${p.id}">+ Giỏ hàng</button>
-          </div>
-        </div>
-        <div class="product-description">${p.description || 'Không có mô tả'}</div>
-      `;
-      list.appendChild(li);
-    });
+        data.forEach(p => {
+          const li = document.createElement('li');
+          li.innerHTML = `
+            <div class="product-container">
+              <div class="product-name">${p.name}</div>
+              <div class="product-price">${p.price.toLocaleString()} VND</div>
+              <div class="product-action">
+                <input type="number" class="quantity-input" min="1" value="1" />
+                <button class="add-to-cart-btn" data-id="${p.id}">+ Giỏ hàng</button>
+              </div>
+              <div class="product-description">${p.description || 'Không có mô tả'}</div>
+            </div>
+          `;
+          list.appendChild(li);
+        });
 
         document.querySelectorAll('.add-to-cart-btn').forEach(button => {
-      button.addEventListener('click', async () => {
-        const productId = parseInt(button.dataset.id);
-        const quantityInput = button.previousElementSibling;
-        const quantity = parseInt(quantityInput.value) || 1;
+          button.addEventListener('click', async () => {
+            const productId = parseInt(button.dataset.id);
+            const quantityInput = button.previousElementSibling;
+            const quantity = parseInt(quantityInput.value) || 1;
 
-        try {
-          const result = await callAPI("/api/cart", {
-            method: "POST",
-            body: JSON.stringify({ product_id: productId, quantity }),
+            try {
+              const result = await callAPI("/api/cart", {
+                method: "POST",
+                body: JSON.stringify({ product_id: productId, quantity }),
+              });
+              alert(result.message || 'Đã thêm vào giỏ hàng!');
+            } catch (err) {
+              console.error(err);
+              alert(err.message || 'Lỗi khi thêm vào giỏ hàng!');
+            }
           });
-          alert(result.message || 'Đã thêm vào giỏ hàng!');
-        } catch (err) {
-          console.error(err);
-          alert(err.message || 'Lỗi khi thêm vào giỏ hàng!');
-        }
-      });
-    });
+        });
 
-    document.getElementById('error').textContent = '';
-  } catch (err) {
-    console.error("Lỗi khi fetch sản phẩm:", err);
-    document.getElementById('error').textContent = err.message || 'Không thể tải sản phẩm.';
-  }
-}
+        document.getElementById('error').textContent = '';
+      } catch (err) {
+        console.error("Lỗi khi fetch sản phẩm:", err);
+        document.getElementById('error').textContent = err.message || 'Không thể tải sản phẩm.';
+      }
+    }
   </script>
 </body>
 </html>
