@@ -16,18 +16,20 @@ def generate_refresh_token(user_id):
 
 
 def save_refresh_token(db, user_id, token):
-    expires_at = datetime.datetime.utcnow() + datetime.timedelta(days=7)  # hoặc thời gian bạn muốn
-    db.execute(
-        "INSERT INTO refresh_tokens (token, user_id, expires_at) VALUES (?, ?, ?)",
+    expires_at = datetime.datetime.utcnow() + datetime.timedelta(days=7)
+    cur = db.cursor()
+    cur.execute(
+        "INSERT INTO refresh_tokens (token, user_id, expires_at) VALUES (%s, %s, %s)",
         (token, user_id, expires_at)
     )
     db.commit()
-
+    cur.close()
 
 
 def revoke_refresh_token(db, token):
     print("Revoke refresh token:", token)
-    result = db.execute("UPDATE refresh_tokens SET revoked = 1 WHERE token = ?", (token,))
+    cur = db.cursor()
+    cur.execute("UPDATE refresh_tokens SET revoked = TRUE WHERE token = %s", (token,))
     db.commit()
-    print("Updated rows:", result.rowcount)
-
+    print("Updated rows:", cur.rowcount)
+    cur.close()
