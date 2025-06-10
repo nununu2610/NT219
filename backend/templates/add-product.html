@@ -128,29 +128,45 @@
 
 
     function loadProducts() {
-      callAPI('/api/products', { method: 'GET' })
-        .then((data) => {
-          productList.innerHTML = '';
-          data.forEach(p => {
-            const li = document.createElement('li');
-          li.innerHTML = `
-            <div class="product-row">
-              <div class="product-name"><b>${p.name}</b><br><small>${p.description}</small></div>
-              <div class="product-price">${p.price.toLocaleString()} VND</div>
-              <div class="product-actions">
-                <button onclick="editProduct(${p.id}, '${p.name}', '${p.description}', ${p.price})">Sửa</button>
-                <button onclick="deleteProduct(${p.id})">Xóa</button>
-              </div>
-            </div>
-          `;
+    const productList = document.getElementById("productList");
+    if (!productList) {
+    console.error("Không tìm thấy phần tử productList!");
+      return;
+  }
 
-            productList.appendChild(li);
-          });
-        })
-        .catch((err) => {
-          productList.innerHTML = `<li>Lỗi tải sản phẩm: ${err.message}</li>`;
-        });
-    }
+  callAPI('/api/products', { method: 'GET' })
+    .then((data) => {
+      console.log("Dữ liệu sản phẩm:", data);
+
+      productList.innerHTML = '';
+
+      if (data.length === 0) {
+        productList.innerHTML = '<li>Không có sản phẩm nào.</li>';
+        return;
+      }
+
+      data.forEach(p => {
+        const li = document.createElement('li');
+        const nameEscaped = encodeURIComponent(p.name);
+        const descEscaped = encodeURIComponent(p.description);
+        li.innerHTML = `
+          <div class="product-row">
+            <div class="product-name"><b>${p.name}</b><br><small>${p.description}</small></div>
+            <div class="product-price">${Number(p.price).toLocaleString()} VND</div>
+            <div class="product-actions">
+              <button onclick="editProduct(${p.id}, decodeURIComponent('${nameEscaped}'), decodeURIComponent('${descEscaped}'), ${p.price})">Sửa</button>
+              <button onclick="deleteProduct(${p.id})">Xóa</button>
+            </div>
+          </div>
+        `;
+        productList.appendChild(li);
+      });
+    })
+    .catch((err) => {
+      productList.innerHTML = `<li>Lỗi tải sản phẩm: ${err.message}</li>`;
+    });
+}
+
 
     function editProduct(id, name, desc, price) {
       nameInput.value = name;
