@@ -25,7 +25,8 @@ CORS(app,
      supports_credentials=True,
      automatic_options=True)
 
-with app.app_context():
+@app.before_first_request
+def initialize_database():
     init_db()
 
 # @app.route('/')
