@@ -39,7 +39,7 @@ def signup():
 
 
 @auth_bp.route('/login', methods=['POST', 'OPTIONS'])
-@limiter.limit("5 per minute")   # Moi IP chi ddc dang nhap 5lan/phut
+@limiter.limit("5 per minute")   
 def login():
     if request.method == 'OPTIONS':
         return '', 200
@@ -55,13 +55,14 @@ def login():
 
     if user:
         if bcrypt.checkpw(password.encode(), user["password"].encode()):
-            # Đăng nhập thành công
+            
             access_token = jwt.encode({
                 "id": user["id"],
                 "username": user["username"],
                 "role": user["role"],
                 "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
             }, SECRET_KEY, algorithm="HS256")
+
             access_token = access_token.decode() if isinstance(access_token, bytes) else access_token
 
             refresh_token = generate_refresh_token(user["id"])

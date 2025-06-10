@@ -41,7 +41,7 @@ def get_cart():
 
 @cart_bp.route('', methods=['POST', 'OPTIONS'])
 @token_required
-@limiter.limit("20 per minute")  #gioi han  them vao gio hang 20lan/phut
+@limiter.limit("20 per minute")  
 def add_to_cart():
     if request.method == 'OPTIONS':
         return '', 200
