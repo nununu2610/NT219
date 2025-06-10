@@ -1,4 +1,3 @@
-const API_BASE = 'https://flask-backend-s1fn.onrender.com';
 
 async function refreshAccessToken(refreshToken) {
   try {

@@ -4,7 +4,68 @@
   <meta charset="UTF-8" />
   <title>Danh sách sản phẩm</title>
   <link rel="stylesheet" href="/static/css/style.css" />
+  <script src="/static/js/config.js"></script>
   <script src="/static/js/api.js"></script>
+
+<style>
+  #productList li {
+    padding: 10px;
+    border-bottom: 1px solid #ccc;
+    list-style: none;
+    display: block;
+  }
+
+  .add-to-cart-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .add-to-cart-btn:hover {
+    background-color: #218838;
+  }
+
+  .product-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .product-name {
+    flex: 1;
+    font-weight: bold;
+    text-align: left;
+  }
+
+  .product-price {
+    flex: 1;
+    text-align: center;
+  }
+
+  .product-action {
+    flex: 1;
+    text-align: right;
+  }
+
+  .product-description {
+    margin-top: 1px;
+    font-style: italic;
+    color: gray;
+    padding-left: 1px;
+  }
+
+  .quantity-input {
+    width: 50px;
+    padding: 4px;
+    font-size: 14px;
+  }
+</style>
+
+
 </head>
 <body>
   <!-- Navbar -->
