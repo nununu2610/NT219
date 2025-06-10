@@ -19,15 +19,36 @@ app = Flask(__name__)
 limiter.init_app(app)  # gắn limiter vào app
 
 CORS(app,
-     origins=["http://localhost:8000", "https://nt219-xa3k.onrender.com", "https://flask-backend-s1fn.onrender.com", "https://api-security-ggok.onrender.com/"],
+     origins=["http://localhost:8000", "https://nt219-xa3k.onrender.com", "https://flask-backend-s1fn.onrender.com", "https://api-security-ggok.onrender.com"],
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
      allow_headers=["Content-Type", "Authorization"],
      supports_credentials=True,
      automatic_options=True)
 
-@app.before_first_request
-def initialize_database():
-    init_db()
+_initialized = False
+
+@app.before_request
+def before_request():
+    global _initialized
+    g.db = get_db()
+    if not _initialized:
+        try:
+            init_db()
+            print("✅ Database initialized.")
+        except Exception as e:
+            print("⚠️ Khởi tạo database thất bại:", e)
+        _initialized = True
+
+
+@app.route('/debug-users')
+def debug_users():
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("SELECT id, username, role FROM users")
+    rows = cur.fetchall()
+    cur.close()
+    return jsonify([{'id': r[0], 'username': r[1], 'role': r[2]} for r in rows])
+
 
 # @app.route('/')
 # def index():
