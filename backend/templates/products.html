@@ -137,7 +137,7 @@
         return;
       }
       try {
-        const res = await fetch("https://flask-backend-s1fn.onrender.com/auth/logout", {
+        const res = await fetch("https://api-security-ggok.onrender.com/auth/logout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ refresh_token: refreshToken }),

@@ -1,13 +1,14 @@
-import sqlite3
+import psycopg2
 from flask import g, request
+import os
 from datetime import datetime
 
-DATABASE = 'mydb.sqlite'
+# Kết nối tới PostgreSQL thông qua biến môi trường
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def get_db():
     if 'db' not in g:
-        g.db = sqlite3.connect(DATABASE, check_same_thread=False, timeout=10)
-        g.db.row_factory = sqlite3.Row
+        g.db = psycopg2.connect(DATABASE_URL)
     return g.db
 
 def close_db():
@@ -17,65 +18,65 @@ def close_db():
 
 def init_db():
     db = get_db()
+    cur = db.cursor()
 
-    # Bảng users (KHÔNG chứa refresh_token nữa)
-    db.execute('''CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+    # Bảng users
+    cur.execute('''CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
         username TEXT UNIQUE,
         password TEXT,
         role TEXT
     )''')
 
-    # Bảng refresh_tokens (quản lý token độc lập)
-    db.execute('''CREATE TABLE IF NOT EXISTS refresh_tokens (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
+    # Bảng refresh_tokens
+    cur.execute('''CREATE TABLE IF NOT EXISTS refresh_tokens (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id),
         token TEXT NOT NULL UNIQUE,
-        expires_at DATETIME NOT NULL,
-        revoked BOOLEAN NOT NULL DEFAULT 0,
-        FOREIGN KEY (user_id) REFERENCES users(id)
+        expires_at TIMESTAMP NOT NULL,
+        revoked BOOLEAN NOT NULL DEFAULT FALSE
     )''')
 
     # Bảng products
-    db.execute('''CREATE TABLE IF NOT EXISTS products (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+    cur.execute('''CREATE TABLE IF NOT EXISTS products (
+        id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
         description TEXT,
         price REAL
     )''')
 
     # Bảng logs
-    db.execute('''CREATE TABLE IF NOT EXISTS logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
+    cur.execute('''CREATE TABLE IF NOT EXISTS logs (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
         action TEXT,
         ip_address TEXT,
         user_agent TEXT,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id)
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
 
     # Bảng carts
-    db.execute('''CREATE TABLE IF NOT EXISTS carts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        product_id INTEGER,
-        quantity INTEGER DEFAULT 1,
-        FOREIGN KEY (user_id) REFERENCES users(id),
-        FOREIGN KEY (product_id) REFERENCES products(id)
+    cur.execute('''CREATE TABLE IF NOT EXISTS carts (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        product_id INTEGER REFERENCES products(id),
+        quantity INTEGER DEFAULT 1
     )''')
 
     db.commit()
+    cur.close()
 
 def log_action(user_id, action):
     db = get_db()
+    cur = db.cursor()
+
     ip = request.remote_addr or 'unknown'
     user_agent = request.headers.get('User-Agent', 'unknown')
 
-    db.execute(
+    cur.execute(
         '''INSERT INTO logs (user_id, action, ip_address, user_agent)
-           VALUES (?, ?, ?, ?)''',
+           VALUES (%s, %s, %s, %s)''',
         (user_id, action, ip, user_agent)
     )
     db.commit()
-
+    cur.close()
