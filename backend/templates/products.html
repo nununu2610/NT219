@@ -153,9 +153,12 @@
 
     async function fetchProducts() {
   try {
+    console.log("Đang gọi /api/products");
     const data = await callAPI("/api/products", {
       method: "GET"
     });
+    console.log("Dữ liệu sản phẩm:", data);
+
 
     const list = document.getElementById('productList');
     list.innerHTML = '';
@@ -197,6 +200,7 @@
 
     document.getElementById('error').textContent = '';
   } catch (err) {
+    console.error("Lỗi khi fetch sản phẩm:", err);
     document.getElementById('error').textContent = err.message || 'Không thể tải sản phẩm.';
   }
 }
