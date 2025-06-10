@@ -152,64 +152,54 @@
     });
 
     async function fetchProducts() {
-      try {
-        const res = await fetch("https://flask-backend-s1fn.onrender.com/api/products", {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${token}`
-          }
-        });
-        if (!res.ok) throw new Error("Không thể tải sản phẩm.");
-        const data = await res.json();
+  try {
+    const data = await callAPI("/api/products", {
+      method: "GET"
+    });
 
-        const list = document.getElementById('productList');
-        list.innerHTML = '';
+    const list = document.getElementById('productList');
+    list.innerHTML = '';
 
-        data.forEach(p => {
-          const li = document.createElement('li');
-          li.innerHTML = `
-            <div class="product-row">
-              <div class="product-name">${p.name}</div>
-              <div class="product-price">${p.price.toLocaleString()} VND</div>
-              <div class="product-action">
-                <input type="number" class="quantity-input" min="1" value="1" />
-                <button class="add-to-cart-btn" data-id="${p.id}">+ Giỏ hàng</button>
-              </div>
-            </div>
-            <div class="product-description">${p.description || 'Không có mô tả'}</div>
-          `;
-          list.appendChild(li);
-        });
+    data.forEach(p => {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <div class="product-row">
+          <div class="product-name">${p.name}</div>
+          <div class="product-price">${p.price.toLocaleString()} VND</div>
+          <div class="product-action">
+            <input type="number" class="quantity-input" min="1" value="1" />
+            <button class="add-to-cart-btn" data-id="${p.id}">+ Giỏ hàng</button>
+          </div>
+        </div>
+        <div class="product-description">${p.description || 'Không có mô tả'}</div>
+      `;
+      list.appendChild(li);
+    });
 
         document.querySelectorAll('.add-to-cart-btn').forEach(button => {
-          button.addEventListener('click', async () => {
-            const productId = parseInt(button.dataset.id);
-            const quantityInput = button.previousElementSibling;
-            const quantity = parseInt(quantityInput.value) || 1;
+      button.addEventListener('click', async () => {
+        const productId = parseInt(button.dataset.id);
+        const quantityInput = button.previousElementSibling;
+        const quantity = parseInt(quantityInput.value) || 1;
 
-            try {
-              const res = await fetch( "https://flask-backend-s1fn.onrender.com/api/cart", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify({ product_id: productId, quantity: quantity })
-              });
-              const data = await res.json();
-              alert(data.message || 'Đã thêm vào giỏ hàng!');
-            } catch (err) {
-              console.error(err);
-              alert('Lỗi khi thêm vào giỏ hàng!');
-            }
+        try {
+          const result = await callAPI("/api/cart", {
+            method: "POST",
+            body: JSON.stringify({ product_id: productId, quantity }),
           });
-        });
+          alert(result.message || 'Đã thêm vào giỏ hàng!');
+        } catch (err) {
+          console.error(err);
+          alert(err.message || 'Lỗi khi thêm vào giỏ hàng!');
+        }
+      });
+    });
 
-        document.getElementById('error').textContent = '';
-      } catch (err) {
-        document.getElementById('error').textContent = err.message || 'Không thể tải sản phẩm.';
-      }
-    }
+    document.getElementById('error').textContent = '';
+  } catch (err) {
+    document.getElementById('error').textContent = err.message || 'Không thể tải sản phẩm.';
+  }
+}
   </script>
 </body>
 </html>
