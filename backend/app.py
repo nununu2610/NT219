@@ -32,6 +32,20 @@ with app.app_context():
 # def index():
 #     return "Hello, Trang chủ!"
 
+@app.route('/debug-tables')
+def debug_tables():
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("""
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public'
+    """)
+    tables = cur.fetchall()
+    cur.close()
+    return jsonify([table[0] for table in tables])
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
