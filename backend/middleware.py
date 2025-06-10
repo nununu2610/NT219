@@ -11,7 +11,7 @@ def token_required(f):
     def decorated(*args, **kwargs):
         if request.method == 'OPTIONS':
             return '', 200
-        
+
         token = None
         auth_header = request.headers.get('Authorization', None)
         if auth_header:
@@ -25,10 +25,13 @@ def token_required(f):
         try:
             data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
             db = get_db()
-            user = db.execute("SELECT * FROM users WHERE id = ?", (data['id'],)).fetchone()
+            cur = db.cursor()
+            cur.execute("SELECT id, username, role FROM users WHERE id = %s", (data['id'],))
+            user = cur.fetchone()
+            cur.close()
             if not user:
                 return jsonify({'message': 'User không tồn tại'}), 401
-            g.user = {"id": user["id"], "username": user["username"], "role": user["role"]}
+            g.user = {"id": user[0], "username": user[1], "role": user[2]}
         except jwt.ExpiredSignatureError:
             return jsonify({'message': 'Token hết hạn'}), 401
         except jwt.InvalidTokenError:
@@ -36,6 +39,7 @@ def token_required(f):
 
         return f(*args, **kwargs)
     return decorated
+
 
 def require_role(role):
     def decorator(f):
@@ -55,7 +59,7 @@ def refresh_token_required(f):
         refresh_token = data.get("refresh_token")
         if not refresh_token:
             return jsonify({'message': 'Refresh token không được cung cấp'}), 401
-        
+
         try:
             decoded = jwt.decode(refresh_token, REFRESH_SECRET_KEY, algorithms=["HS256"])
         except jwt.ExpiredSignatureError:
@@ -64,23 +68,23 @@ def refresh_token_required(f):
             return jsonify({'message': 'Refresh token không hợp lệ'}), 401
 
         db = get_db()
-
-        # Kiểm tra token có tồn tại, chưa bị thu hồi và chưa hết hạn trong bảng refresh_tokens
-        result = db.execute(
-            "SELECT * FROM refresh_tokens WHERE token = ? AND revoked = 0 AND expires_at > datetime('now')",
-            (refresh_token,)
-        ).fetchone()
+        cur = db.cursor()
+        cur.execute(
+            "SELECT * FROM refresh_tokens WHERE token = %s AND revoked = false AND expires_at > NOW()",
+            (refresh_token,))
+        result = cur.fetchone()
 
         if not result:
+            cur.close()
             return jsonify({'message': 'Refresh token không hợp lệ hoặc đã bị thu hồi'}), 401
 
-        # Truy vấn user tương ứng
-        user = db.execute("SELECT * FROM users WHERE id = ?", (decoded['id'],)).fetchone()
+        cur.execute("SELECT id, username, role FROM users WHERE id = %s", (decoded['id'],))
+        user = cur.fetchone()
+        cur.close()
+
         if not user:
             return jsonify({'message': 'User không tồn tại'}), 401
-        
-        g.user = {"id": user["id"], "username": user["username"], "role": user["role"]}
-        
+
+        g.user = {"id": user[0], "username": user[1], "role": user[2]}
         return f(*args, **kwargs)
     return decorated
-

@@ -14,17 +14,21 @@ def get_me():
         "role": user["role"]
     })
 
+
 @user_bp.route('/logs', methods=['GET'])
 @token_required
 def get_logs():
     user = g.user
     db = get_db()
-    rows = db.execute("SELECT * FROM logs WHERE user_id=?", (user["id"],)).fetchall()
-    logs = []
-    for row in rows:
-        logs.append({
-            "id": row["id"],
-            "action": row["action"],
-            "timestamp": row["timestamp"]
-        })
+    cur = db.cursor()
+    cur.execute("SELECT id, action, timestamp FROM logs WHERE user_id = %s ORDER BY timestamp DESC", (user["id"],))
+    rows = cur.fetchall()
+    cur.close()
+
+    logs = [{
+        "id": row[0],
+        "action": row[1],
+        "timestamp": row[2].isoformat() if row[2] else None
+    } for row in rows]
+
     return jsonify(logs)

@@ -8,58 +8,63 @@ product_bp = Blueprint('product', __name__)
 # Ghi log vào bảng logs
 def log_action(user_id, action):
     db = get_db()
-    db.execute("INSERT INTO logs (user_id, action) VALUES (?, ?)", (user_id, action))
+    cur = db.cursor()
+    cur.execute("INSERT INTO logs (user_id, action) VALUES (%s, %s)", (user_id, action))
     db.commit()
+    cur.close()
 
-# Xem chi tiết sản phẩm theo ID
 @product_bp.route('/products/<int:id>', methods=['GET'])
 @token_required
 def get_product_by_id(id):
     try:
-        db=get_db()
-        row = db.execute("SELECT * FROM products WHERE id=?", (id,)).fetchone()
+        db = get_db()
+        cur = db.cursor()
+        cur.execute("SELECT * FROM products WHERE id=%s", (id,))
+        row = cur.fetchone()
+        cur.close()
+
         if not row:
             return jsonify({"error": "Không tìm thấy sản phẩm"}), 404
-        
+
         product = {
-            "id": row["id"],
-            "name": decrypt(row["name"]),
-            "description": decrypt(row["description"]) if row["description"] else "",
-            "price": row["price"]
+            "id": row[0],
+            "name": decrypt(row[1]),
+            "description": decrypt(row[2]) if row[2] else "",
+            "price": row[3]
         }
 
-        log_action(g.user["id"], f"Xem sản phẩm i={id}")
+        log_action(g.user["id"], f"Xem sản phẩm id={id}")
         return jsonify(product)
     except Exception as e:
-        print ("Lỗi:", e)
+        print("Lỗi:", e)
         return jsonify({"error": "Không thể lấy sản phẩm"}), 500
 
-# Lấy danh sách tất cả sản phẩm (ai cũng xem được)
+
 @product_bp.route('/products', methods=['GET', 'OPTIONS'])
 @token_required
 def get_products():
-
-
     try:
         db = get_db()
-        rows = db.execute("SELECT * FROM products").fetchall()
-        products = []
+        cur = db.cursor()
+        cur.execute("SELECT * FROM products")
+        rows = cur.fetchall()
+        cur.close()
 
+        products = []
         for row in rows:
             try:
-                name = decrypt(row["name"])
-                description = decrypt(row["description"]) if row["description"] else ""
+                name = decrypt(row[1])
+                description = decrypt(row[2]) if row[2] else ""
             except Exception as e:
-                print(f"Lỗi decrypt sản phẩm id={row['id']}: {e}")
-                # Nếu decrypt lỗi, dùng thẳng dữ liệu gốc
-                name = row["name"]
-                description = row["description"] if row["description"] else ""
+                print(f"Lỗi decrypt sản phẩm id={row[0]}: {e}")
+                name = row[1]
+                description = row[2] if row[2] else ""
 
             products.append({
-                "id": row["id"],
+                "id": row[0],
                 "name": name,
                 "description": description,
-                "price": row["price"]
+                "price": row[3]
             })
 
         log_action(g.user["id"], "Xem danh sách sản phẩm")
@@ -69,13 +74,10 @@ def get_products():
         return jsonify({"error": "Không thể lấy danh sách sản phẩm"}), 500
 
 
-# Thêm sản phẩm (chỉ admin)
 @product_bp.route('/products', methods=['POST', 'OPTIONS'])
 @token_required
 @require_role('admin')
 def add_product():
-
-
     try:
         data = request.get_json()
         name = encrypt(data["name"])
@@ -83,9 +85,11 @@ def add_product():
         price = data["price"]
 
         db = get_db()
-        db.execute("INSERT INTO products (name, description, price) VALUES (?, ?, ?)",
-                   (name, description, price))
+        cur = db.cursor()
+        cur.execute("INSERT INTO products (name, description, price) VALUES (%s, %s, %s)",
+                    (name, description, price))
         db.commit()
+        cur.close()
 
         log_action(g.user["id"], f"Thêm sản phẩm: {data['name']}")
         return jsonify({"message": "Thêm sản phẩm thành công"})
@@ -93,7 +97,7 @@ def add_product():
         print("LỖI:", e)
         return jsonify({"error": "Không thể thêm sản phẩm"}), 500
 
-# Cập nhật sản phẩm (chỉ admin)
+
 @product_bp.route('/products/<int:id>', methods=['PUT', 'OPTIONS'])
 @token_required
 @require_role('admin')
@@ -105,9 +109,11 @@ def update_product(id):
         price = data["price"]
 
         db = get_db()
-        db.execute("UPDATE products SET name=?, description=?, price=? WHERE id=?",
-                   (name, description, price, id))
+        cur = db.cursor()
+        cur.execute("UPDATE products SET name=%s, description=%s, price=%s WHERE id=%s",
+                    (name, description, price, id))
         db.commit()
+        cur.close()
 
         log_action(g.user["id"], f"Cập nhật sản phẩm id={id}")
         return jsonify({"message": "Cập nhật sản phẩm thành công"})
@@ -115,15 +121,17 @@ def update_product(id):
         print("LỖI:", e)
         return jsonify({"error": "Không thể cập nhật sản phẩm"}), 500
 
-# Xóa sản phẩm (chỉ admin)
+
 @product_bp.route('/products/<int:id>', methods=['DELETE', 'OPTIONS'])
 @token_required
 @require_role('admin')
 def delete_product(id):
     try:
         db = get_db()
-        db.execute("DELETE FROM products WHERE id=?", (id,))
+        cur = db.cursor()
+        cur.execute("DELETE FROM products WHERE id=%s", (id,))
         db.commit()
+        cur.close()
 
         log_action(g.user["id"], f"Xóa sản phẩm id={id}")
         return jsonify({"message": "Xóa sản phẩm thành công"})
