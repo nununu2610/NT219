@@ -51,6 +51,14 @@ def cart():
 def navbar():
     return send_file("templates/navbar.html")
 
+@app.route('/init-db')
+def init_database():
+    try:
+        init_db()
+        return "✅ Database initialized successfully!"
+    except Exception as e:
+        return f"❌ Error initializing DB: {str(e)}"
+
 # ✅ Đăng ký toàn bộ API qua Gateway
 app.register_blueprint(gateway_bp)
 
