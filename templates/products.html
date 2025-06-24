@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Danh sách sản phẩm</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <script src="/static/js/config.js"></script>
+  <script src="/static/js/api.js"></script>
+  <style>
+    /* CSS giữ nguyên như cũ */
+    #productList {
+      padding: 0;
+    }
+
+    #productList li {
+      padding: 12px;
+      border-bottom: 1px solid #ccc;
+      list-style: none;
+    }
+
+    .product-container {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .product-name {
+      font-weight: bold;
+      flex: 2;
+    }
+
+    .product-price {
+      flex: 1;
+      text-align: right;
+    }
+
+    .product-action {
+      flex: 1;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .product-description {
+      margin-top: 4px;
+      font-style: italic;
+      color: gray;
+      width: 100%;
+    }
+
+    .quantity-input {
+      width: 50px;
+    }
+
+    .add-to-cart-btn {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .add-to-cart-btn:hover {
+      background-color: #218838;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav>
+    <div class="nav-left">
+      <a href="/">Trang chủ</a>
+      <a href="/products">Sản phẩm</a>
+    </div>
+    <div class="nav-right">
+      <a href="/signup" id="signup-link">Đăng ký</a>
+      <a href="/login" id="login-link">Đăng nhập</a>
+      <a href="#" id="logout-link" style="display:none;">Đăng xuất</a>
+      <a href="/add-product" id="admin-link" style="display:none;">Thêm sản phẩm</a>
+      <a href="/cart" id="cart-link" style="display:none;">Giỏ hàng</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h2>Danh sách sản phẩm</h2>
+    <ul id="productList"></ul>
+    <p id="error" class="message error"></p>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const refreshToken = localStorage.getItem('refresh_token');
+
+    const signupLink = document.getElementById('signup-link');
+    const loginLink = document.getElementById('login-link');
+    const logoutLink = document.getElementById('logout-link');
+    const adminLink = document.getElementById('admin-link');
+    const cartLink = document.getElementById('cart-link');
+
+    if (token) {
+      signupLink.style.display = 'none';
+      loginLink.style.display = 'none';
+      logoutLink.style.display = 'inline-block';
+
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.role === 'admin') {
+          adminLink.style.display = 'inline-block';
+        } else if (payload.role === 'user') {
+          cartLink.style.display = 'inline-block';
+        }
+        fetchProducts();
+      } catch (e) {
+        console.error("Lỗi phân tích token:", e);
+      }
+    } else {
+      signupLink.style.display = 'inline-block';
+      loginLink.style.display = 'inline-block';
+      logoutLink.style.display = 'none';
+      adminLink.style.display = 'none';
+      cartLink.style.display = 'none';
+      document.getElementById('error').textContent = 'Bạn cần đăng nhập để xem sản phẩm.';
+    }
+
+    logoutLink.addEventListener('click', async () => {
+      if (!refreshToken) {
+        alert('Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn.');
+        window.location.href = "/login";
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/auth/logout`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refresh_token: refreshToken }),
+        });
+        const data = await res.json();
+        localStorage.removeItem("token");
+        localStorage.removeItem("refresh_token");
+        alert(data.message || "Đăng xuất thành công");
+        window.location.href = "/login";
+      } catch (err) {
+        console.error(err);
+        localStorage.removeItem("token");
+        localStorage.removeItem("refresh_token");
+        alert("Lỗi khi đăng xuất");
+        window.location.href = "/login";
+      }
+    });
+
+    async function fetchProducts() {
+  try {
+    const data = await callAPI("/products", { method: "GET" });
+    console.log("👉 Dữ liệu trả về từ API:", data);
+
+    if (!Array.isArray(data)) {
+      throw new Error("API không trả về mảng sản phẩm");
+    }
+
+    const list = document.getElementById('productList');
+    list.innerHTML = '';
+
+    data.forEach(p => {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <div class="product-container">
+          <div class="product-name">${p.name}</div>
+          <div class="product-price">${p.price.toLocaleString()} VND</div>
+          <div class="product-action">
+            <input type="number" class="quantity-input" min="1" value="1" />
+            <button class="add-to-cart-btn" data-id="${p.id}">+ Giỏ hàng</button>
+          </div>
+          <div class="product-description">${p.description || 'Không có mô tả'}</div>
+        </div>
+      `;
+      list.appendChild(li);
+    });
+
+    document.getElementById('error').textContent = '';
+  } catch (err) {
+    console.error("Lỗi khi fetch sản phẩm:", err);
+    document.getElementById('error').textContent = err.message || 'Không thể tải sản phẩm.';
+  }
+}
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Trang chủ</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+  <div id="navbar-placeholder"></div>
+  <script>
+    fetch('/navbar')
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById('navbar-placeholder').innerHTML = html;
+      });
+  </script>
+  <div class="container">
+    <h1>Chào mừng đến với ứng dụng quản lý doanh nghiệp nhỏ</h1>
+    <p>Hãy đăng ký hoặc đăng nhập để bắt đầu!</p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!-- navbar.html -->
+<nav>
+  <div class="nav-left">
+    <a href="/">Trang chủ</a>
+    <a href="/products">Sản phẩm</a>
+  </div>
+  <div class="nav-right">
+    <a href="/signup" id="signup-link">Đăng ký</a>
+    <a href="/login" id="login-link">Đăng nhập</a>
+    <a href="#" id="logout-link" style="display:none;">Đăng xuất</a>
+    <a href="/add-product" id="admin-link" style="display:none;">Thêm sản phẩm</a>
+    <a href="/cart" id="cart-link" style="display:none;">Giỏ hàng</a>
+  </div>
+</nav>
+
+<script>
+  const token = localStorage.getItem('token');
+  const refreshToken = localStorage.getItem('refresh_token');
+
+  const signupLink = document.getElementById('signup-link');
+  const loginLink = document.getElementById('login-link');
+  const logoutLink = document.getElementById('logout-link');
+  const adminLink = document.getElementById('admin-link');
+  const cartLink = document.getElementById('cart-link');
+
+  if (token) {
+    signupLink.style.display = 'none';
+    loginLink.style.display = 'none';
+    logoutLink.style.display = 'inline-block';
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.role === 'admin') {
+        adminLink.style.display = 'inline-block';
+      } else if (payload.role === 'user') {
+        cartLink.style.display = 'inline-block';
+      }
+    } catch (e) {
+      console.error("Lỗi phân tích token:", e);
+    }
+  } else {
+    signupLink.style.display = 'inline-block';
+    loginLink.style.display = 'inline-block';
+    logoutLink.style.display = 'none';
+    adminLink.style.display = 'none';
+    cartLink.style.display = 'none';
+  }
+
+  logoutLink.addEventListener('click', async () => {
+    if (!refreshToken) {
+      alert('Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn.');
+      window.location.href = "/login";
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/auth/logout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+      const data = await res.json();
+      localStorage.removeItem("token");
+      localStorage.removeItem("refresh_token");
+      alert(data.message || "Đăng xuất thành công");
+      window.location.href = "/login";
+    } catch (err) {
+      console.error(err);
+      localStorage.removeItem("token");
+      localStorage.removeItem("refresh_token");
+      alert("Lỗi khi đăng xuất");
+      window.location.href = "/login";
+    }
+  });
+</script>
